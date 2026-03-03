@@ -1,0 +1,54 @@
+// ESTE ES UN ARCHIVO CON LAS ACTUALIZACIONES NECESARIAS PARA MainScreen.kt
+
+PARA RESOLVER EL PROBLEMA DE COMPILACIÓN Y IMPLEMENTAR LA FUNCIONALIDAD SOLICITADA:
+
+1. EN LOS IMPORTS (alrededor de la línea 29), AGREGAR:
+import com.example.repartidor.ui.screens.ProfileScreen
+import com.example.repartidor.ui.screens.HelpScreen
+import com.example.repartidor.ui.screens.AboutScreen
+
+2. EN LA FUNCIÓN MainScreen, AGREGAR ESTADO PARA LAS NUEVAS PANTALLAS:
+var showProfile by remember { mutableStateOf(false) }
+var showHelp by remember { mutableStateOf(false) }
+var showAbout by remember { mutableStateOf(false) }
+
+3. EN EL CUERPO PRINCIPAL DE LA FUNCIÓN MainScreen, ANTES DEL SCAFFOLD, AGREGAR:
+// Mostrar pantallas modales si están activas
+if (showProfile) {
+    ProfileScreen(
+        deliveryPerson = deliveryPerson,
+        onBackToSettings = { showProfile = false }
+    )
+} else if (showHelp) {
+    HelpScreen(
+        onBackToSettings = { showHelp = false }
+    )
+} else if (showAbout) {
+    AboutScreen(
+        onBackToSettings = { showAbout = false }
+    )
+} else {
+
+4. LUEGO CAMBIAR LA LLAMADA A SettingsScreen (alrededor de la línea 162-164) DE:
+4 -> SettingsScreen(
+    onBackToDashboard = { /* Navigate back to dashboard */ }
+)
+
+POR:
+4 -> SettingsScreen(
+    onBackToDashboard = { selectedTab = 0 },
+    onNavigateToProfile = { 
+        showProfile = true
+    },
+    onNavigateToHelp = { 
+        showHelp = true
+    },
+    onNavigateToAbout = { 
+        showAbout = true
+    },
+    onLogout = { 
+        onLogout()
+    }
+)
+
+5. ASEGURARSE DE CERRAR EL ELSE CON } DESPUÉS DE LA LLAMADA A SettingsScreen

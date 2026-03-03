@@ -1,0 +1,36 @@
+# Carpetas de compilación
+build/
+*/build/
+
+# Archivos temporales
+*.tmp
+*.log
+*.swp
+
+# Configuración de IDE
+.idea/
+
+# Archivos temporales de Kotlin
+.kotlin/
+
+# Archivos generados por Gradle
+.gradle/
+*/gradle/
+!gradle.properties
+!gradlew
+!gradlew.bat
+!gradle/
+
+# Archivos APK y otros artefactos
+*.apk
+*.aab
+
+# Archivos de configuración sensibles
+local.properties
+
+# Carpeta de salida de Vite (para el proyecto web)
+repartidor-web/dist/
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db

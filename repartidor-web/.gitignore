@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.env
+.DS_Store
+*.log
+coverage/
+.nyc_output/
+.vscode/
+.idea/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.vercel
+.env*.local
