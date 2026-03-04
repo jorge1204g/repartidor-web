@@ -52,6 +52,9 @@ export interface Order {
   candidateDeliveryIds: string[];
   createdAt: number;
   deliveredAt?: number | null;
+  deliveredDateTime?: string; // Fecha y hora de entrega formateada
+  restaurantMapUrl?: string; // URL de Google Maps del restaurante
+  orderType?: 'MANUAL' | 'RESTAURANT'; // Tipo de pedido: Manual o Restaurante
 }
 
 export interface Message {

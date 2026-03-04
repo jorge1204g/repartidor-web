@@ -74,7 +74,9 @@ class OrderService {
             assignedToDeliveryName: order.assignedToDeliveryName || '',
             candidateDeliveryIds: Array.isArray(order.candidateDeliveryIds) ? order.candidateDeliveryIds : [],
             createdAt: order.createdAt || Date.now(),
-            deliveredAt: order.deliveredAt || null
+            deliveredAt: order.deliveredAt || null,
+            restaurantMapUrl: order.restaurantMapUrl || '', // URL de Google Maps del restaurante
+            orderType: order.orderType // Leer el tipo de pedido (puede ser undefined para pedidos antiguos)
           };
           
           ordersArray.push(orderObj);
@@ -153,6 +155,9 @@ class OrderService {
       // Si el nuevo estado es DELIVERED, registrar el momento de entrega
       if (newStatus === 'DELIVERED') {
         updates[`orders/${orderId}/deliveredAt`] = Date.now();
+        // Agregar fecha y hora formateada de entrega
+        const deliveredDateTimeString = new Date().toLocaleString();
+        updates[`orders/${orderId}/deliveredDateTime`] = deliveredDateTimeString;
       }
       
       await firebaseUpdate(ref(database), updates);
@@ -230,7 +235,8 @@ class OrderService {
               assignedToDeliveryName: order.assignedToDeliveryName || '',
               candidateDeliveryIds: Array.isArray(order.candidateDeliveryIds) ? order.candidateDeliveryIds : [],
               createdAt: order.createdAt || Date.now(),
-              deliveredAt: order.deliveredAt || null
+              deliveredAt: order.deliveredAt || null,
+              orderType: order.orderType // Leer el tipo de pedido (puede ser undefined para pedidos antiguos)
             };
             
             ordersArray.push(orderObj);

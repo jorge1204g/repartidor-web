@@ -564,7 +564,24 @@ const Dashboard: React.FC = () => {
                               </button>
                             )}
                             
-                            {order.pickupLocationUrl && order.pickupLocationUrl.trim() !== '' && (
+                            {(order.restaurantMapUrl && order.restaurantMapUrl.trim() !== '') ? (
+                              <button
+                                onClick={() => window.open(order.restaurantMapUrl, '_blank')}
+                                style={{
+                                  padding: '8px 12px',
+                                  backgroundColor: '#FF9800',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                              >
+                                🏪 Dirección del Restaurante
+                              </button>
+                            ) : order.pickupLocationUrl && order.pickupLocationUrl.trim() !== '' && (
                               <button
                                 onClick={() => window.open(order.pickupLocationUrl, '_blank')}
                                 style={{

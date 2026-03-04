@@ -201,7 +201,7 @@ const OrdersPage: React.FC = () => {
         </div>
       )}
 
-      {/* Lista de pedidos activos */}
+      {/* Lista de pedidos activos - NUEVO DISEÑO */}
       <div style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <div style={{ padding: '16px' }}>
           {orders.filter(order => order.status !== OrderStatus.DELIVERED).length === 0 ? (
@@ -209,180 +209,227 @@ const OrdersPage: React.FC = () => {
               No tienes pedidos activos
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {orders.filter(order => order.status !== OrderStatus.DELIVERED).map(order => (
                 <div key={order.id} style={{
-                  border: '1px solid #eee',
-                  borderRadius: '8px',
-                  padding: '16px'
+                  border: 'none',
+                  borderRadius: '16px',
+                  padding: '0',
+                  backgroundColor: '#fff',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                  overflow: 'hidden'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <h3 style={{ margin: '0', fontSize: '16px', color: '#333' }}>
-                      Pedido #{order.orderId || order.id}
-                    </h3>
-                    <span style={{
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      backgroundColor: order.status === OrderStatus.DELIVERED ? '#e8f5e9' : 
-                                     order.status === OrderStatus.PENDING ? '#fff3e0' :
-                                     '#e3f2fd',
-                      color: order.status === OrderStatus.DELIVERED ? '#2e7d32' : 
-                             order.status === OrderStatus.PENDING ? '#ef6c00' :
-                             '#1565c0'
-                    }}>
-                      {translateOrderStatus(order.status)}
-                    </span>
+                  {/* Encabezado del Pedido - Con Colores por Tipo */}
+                  <div style={{
+                    background: order.orderType === 'RESTAURANT' 
+                      ? 'linear-gradient(135deg, #ff9800 0%, #ff6f00 100%)'
+                      : 'linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)',
+                    padding: '20px 24px',
+                    color: 'white',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 'bold' }}>
+                        Pedido #{order.orderId || order.id}
+                      </h3>
+                      <p style={{ margin: '0', fontSize: '14px', opacity: 0.9 }}>
+                        🏪 {order.restaurantName}
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {/* Badge del estado con nuevo diseño */}
+                      <span style={{
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        backgroundColor: 'white',
+                        color: order.status === OrderStatus.DELIVERED ? '#2e7d32' : 
+                               order.status === OrderStatus.PENDING ? '#ef6c00' :
+                               '#1565c0',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                      }}>
+                        {translateOrderStatus(order.status)}
+                      </span>
+                    </div>
                   </div>
                   
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Restaurante:</strong> {order.restaurantName}</p>
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Método de Pago:</strong> {order.paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'}</p>
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Monto en el Restaurante:</strong> ${order.subtotal.toFixed(2)}</p>
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Ganancia:</strong> ${order.deliveryCost.toFixed(2)}</p>
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Dirección del Cliente:</strong> {order.deliveryAddress}</p>
-                  
-                  {/* Mostrar productos */}
-                  <div style={{ marginTop: '8px' }}>
-                    <strong style={{ fontSize: '14px', color: '#333' }}>Productos:</strong>
-                    <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
-                      {order.items.map((item, index) => (
-                        <li key={index} style={{ fontSize: '13px', color: '#333' }}>
-                          {item.name} x{item.quantity} (${(item.price * item.quantity).toFixed(2)})
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  {/* Mostrar información de contacto y dirección solo después de aceptar el pedido */}
-                  {order.status !== OrderStatus.MANUAL_ASSIGNED || order.assignedToDeliveryId ? (
-                    <>
-                      <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Cliente:</strong> {order.customer.name}</p>
-                      <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Teléfono:</strong> {order.customer.phone}</p>
-                      {order.deliveryReferences && (
-                        <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Referencias del Domicilio:</strong> {order.deliveryReferences}</p>
-                      )}
-                    </>
-                  ) : (
-                    <p style={{ 
-                      margin: '8px 0', 
-                      fontSize: '13px', 
-                      color: '#f44336',
-                      fontStyle: 'italic'
+                  {/* Cuerpo del Pedido */}
+                  <div style={{ padding: '24px' }}>
+                    {/* Información Financiera - Destacada */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                      gap: '16px',
+                      marginBottom: '20px'
                     }}>
-                      Toca "Aceptar Pedido" para ver información de contacto y dirección
-                    </p>
-                  )}
-                  
-                  {/* Botones adicionales después de aceptar el pedido */}
-                  {(order.status !== OrderStatus.MANUAL_ASSIGNED || order.assignedToDeliveryId) && (
-                    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <button
-                        onClick={() => window.open(`tel:${order.customer.phone}`, '_blank')}
-                        style={{
-                          padding: '8px 12px',
-                          backgroundColor: '#2196F3',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        📞 Llamar al Cliente
-                      </button>
+                      <div style={{
+                        backgroundColor: '#f5f5f5',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        textAlign: 'center'
+                      }}>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#666', fontWeight: '600' }}>
+                          💰 GANANCIA
+                        </p>
+                        <p style={{ margin: '0', fontSize: '24px', fontWeight: 'bold', color: '#4CAF50' }}>
+                          ${order.deliveryCost.toFixed(2)}
+                        </p>
+                      </div>
                       
-                      {order.customerUrl && order.customerUrl.trim() !== '' && (
+                      <div style={{
+                        backgroundColor: '#f5f5f5',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        textAlign: 'center'
+                      }}>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#666', fontWeight: '600' }}>
+                          📦 MONTO RESTAURANTE
+                        </p>
+                        <p style={{ margin: '0', fontSize: '24px', fontWeight: 'bold', color: '#2196F3' }}>
+                          ${order.subtotal.toFixed(2)}
+                        </p>
+                      </div>
+                      
+                      <div style={{
+                        backgroundColor: '#f5f5f5',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        textAlign: 'center'
+                      }}>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#666', fontWeight: '600' }}>
+                          💵 MÉTODO DE PAGO
+                        </p>
+                        <p style={{ margin: '0', fontSize: '16px', fontWeight: 'bold', color: '#333' }}>
+                          {order.paymentMethod === 'cash' ? '🪙 Efectivo' : '💳 Transferencia'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Productos */}
+                    {order.items && order.items.length > 0 && (
+                      <div style={{
+                        backgroundColor: '#fff3e0',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        marginBottom: '20px'
+                      }}>
+                        <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#ef6c00', fontWeight: 'bold' }}>
+                          🛒 PRODUCTOS DEL PEDIDO
+                        </h4>
+                        <ul style={{ margin: '0', paddingLeft: '20px' }}>
+                          {order.items.map((item, index) => (
+                            <li key={index} style={{ 
+                              fontSize: '14px', 
+                              color: '#333',
+                              marginBottom: '6px',
+                              paddingBottom: '6px',
+                              borderBottom: '1px dashed #ffb74d'
+                            }}>
+                              <strong>{item.name}</strong> x{item.quantity} - 
+                              <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>
+                                ${(item.price * item.quantity).toFixed(2)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* Dirección del Cliente */}
+                    <div style={{
+                      backgroundColor: '#e3f2fd',
+                      padding: '16px',
+                      borderRadius: '12px',
+                      marginBottom: '20px'
+                    }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1565c0', fontWeight: 'bold' }}>
+                        📍 DIRECCIÓN DE ENTREGA
+                      </h4>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#333' }}>
+                        <strong>Dirección:</strong> {order.deliveryAddress}
+                      </p>
+                      {order.deliveryReferences && (
+                        <p style={{ margin: '0', fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
+                          📝 Referencias: {order.deliveryReferences}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Información de Contacto - Solo después de aceptar */}
+                    {order.status !== OrderStatus.MANUAL_ASSIGNED || order.assignedToDeliveryId ? (
+                      <div style={{
+                        backgroundColor: '#e8f5e9',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        marginBottom: '20px'
+                      }}>
+                        <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#2e7d32', fontWeight: 'bold' }}>
+                          👤 INFORMACIÓN DEL CLIENTE
+                        </h4>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#333' }}>
+                          <strong>Nombre:</strong> {order.customer.name}
+                        </p>
+                        <p style={{ margin: '0', fontSize: '14px', color: '#333' }}>
+                          <strong>Teléfono:</strong> {order.customer.phone}
+                        </p>
+                      </div>
+                    ) : (
+                      <div style={{
+                        backgroundColor: '#ffebee',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        marginBottom: '20px',
+                        border: '2px dashed #f44336',
+                        textAlign: 'center'
+                      }}>
+                        <p style={{ 
+                          margin: '0', 
+                          fontSize: '14px', 
+                          color: '#c62828',
+                          fontWeight: '600'
+                        }}>
+                          🔒 Toca "Aceptar Pedido" para ver información de contacto y dirección
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Botones de acción */}
+                    <div style={{ marginTop: '20px' }}>
+                      {order.status === OrderStatus.MANUAL_ASSIGNED && !order.assignedToDeliveryId && (
                         <button
-                          onClick={() => window.open(order.customerUrl, '_blank')}
+                          onClick={async () => {
+                            if (!deliveryPerson) return;
+                            const result = await OrderService.acceptOrder(order.id, deliveryPerson.id, deliveryPerson.name);
+                            if (result.success) {
+                              alert('Pedido aceptado exitosamente');
+                            } else {
+                              setError(result.message);
+                            }
+                          }}
                           style={{
-                            padding: '8px 12px',
+                            padding: '14px 24px',
                             backgroundColor: '#4CAF50',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '4px',
+                            borderRadius: '8px',
                             cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: 'bold',
+                            boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
                           }}
                         >
-                          📍 Ubicación del Cliente
+                          ✅ Aceptar Pedido
                         </button>
                       )}
                       
-                      {order.pickupLocationUrl && order.pickupLocationUrl.trim() !== '' && (
-                        <button
-                          onClick={() => window.open(order.pickupLocationUrl, '_blank')}
-                          style={{
-                            padding: '8px 12px',
-                            backgroundColor: '#FF9800',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          🏪 Dirección del Restaurante
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  
-                  <div style={{ marginTop: '12px' }}>
-                    {order.status === OrderStatus.MANUAL_ASSIGNED && !order.assignedToDeliveryId && (
-                      <button
-                        onClick={async () => {
-                          if (!deliveryPerson) return;
-                          const result = await OrderService.acceptOrder(order.id, deliveryPerson.id, deliveryPerson.name);
-                          if (result.success) {
-                            alert('Pedido aceptado exitosamente');
-                          } else {
-                            setError(result.message);
-                          }
-                        }}
-                        style={{
-                          padding: '10px 16px',
-                          backgroundColor: '#4CAF50',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          width: '100%'
-                        }}
-                      >
-                        Aceptar Pedido
-                      </button>
-                    )}
-                    
-                    {order.status === OrderStatus.MANUAL_ASSIGNED && order.assignedToDeliveryId === deliveryPerson?.id && (
-                      <button
-                        onClick={async () => {
-                          const result = await OrderService.updateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_STORE);
-                          if (!result.success) {
-                            setError(result.message);
-                          }
-                        }}
-                        style={{
-                          padding: '10px 16px',
-                          backgroundColor: '#FF9800',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          width: '100%'
-                        }}
-                      >
-                        1. En camino al restaurante
-                      </button>
-                    )}
-                    
-                    {order.status === OrderStatus.ACCEPTED && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {/* Más botones de acciones según el estado */}
+                      {order.status === OrderStatus.MANUAL_ASSIGNED && order.assignedToDeliveryId === deliveryPerson?.id && (
                         <button
                           onClick={async () => {
                             const result = await OrderService.updateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_STORE);
@@ -391,192 +438,232 @@ const OrdersPage: React.FC = () => {
                             }
                           }}
                           style={{
-                            padding: '10px 16px',
+                            padding: '14px 24px',
                             backgroundColor: '#FF9800',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '4px',
+                            borderRadius: '8px',
                             cursor: 'pointer',
-                            width: '100%'
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: 'bold'
                           }}
                         >
                           1. En camino al restaurante
                         </button>
-                        <button
-                          onClick={() => {
-                            // Crear un diálogo modal más completo para mostrar todos los detalles del pedido
-                            const modal = document.createElement('div');
-                            modal.style.position = 'fixed';
-                            modal.style.top = '0';
-                            modal.style.left = '0';
-                            modal.style.width = '100%';
-                            modal.style.height = '100%';
-                            modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
-                            modal.style.display = 'flex';
-                            modal.style.justifyContent = 'center';
-                            modal.style.alignItems = 'center';
-                            modal.style.zIndex = '1000';
-                            
-                            modal.innerHTML = `
-                              <div style="background: white; padding: 20px; border-radius: 8px; max-width: 90%; max-height: 90%; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                                <h3 style="margin-top: 0; color: #333;">Detalles del Pedido</h3>
-                                
-                                <h4 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Datos del Cliente</h4>
-                                <p><strong>Nombre del Cliente:</strong> ${order.customer.name}</p>
-                                <p><strong>Dirección del Cliente:</strong> ${order.deliveryAddress}</p>
-                                <p><strong>Teléfono del Cliente:</strong> ${order.customer.phone}</p>
-                                ${order.deliveryReferences ? `<p><strong>Referencias del Domicilio:</strong> ${order.deliveryReferences}</p>` : ''}
-                                
-                                <h4 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Productos del Pedido</h4>
-                                <ul>
-                                  ${order.items.map(item => `<li>${item.name} x${item.quantity} ($${(item.price * item.quantity).toFixed(2)})</li>`).join('')}
-                                </ul>
-                                
-                                <h4 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Detalles Financieros</h4>
-                                <p><strong>Monto en Restaurante:</strong> $${order.subtotal.toFixed(2)}</p>
-                                <p><strong>Tarifa de Entrega:</strong> $${order.deliveryCost.toFixed(2)}</p>
-                                <p><strong>Total:</strong> $${order.total.toFixed(2)}</p>
-                                
-                                <h4 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Detalles Adicionales</h4>
-                                <p><strong>Método de Pago:</strong> ${order.paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'}</p>
-                                
-                                <div style="margin-top: 20px; text-align: center;">
-                                  <button onclick="document.body.removeChild(this.closest('div'))" style="
-                                    padding: 10px 20px;
-                                    background-color: #f44336;
-                                    color: white;
-                                    border: none;
-                                    border-radius: 4px;
-                                    cursor: pointer;
-                                  ">Cerrar</button>
-                                </div>
-                              </div>
-                            `;
-                            
-                            // Agregar evento para cerrar el modal al hacer clic fuera
-                            modal.onclick = function(event) {
-                              if (event.target === modal) {
-                                document.body.removeChild(modal);
+                      )}
+                      
+                      {order.status === OrderStatus.ACCEPTED && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <button
+                            onClick={async () => {
+                              const result = await OrderService.updateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_STORE);
+                              if (!result.success) {
+                                setError(result.message);
                               }
-                            };
-                            
-                            document.body.appendChild(modal);
+                            }}
+                            style={{
+                              padding: '14px 24px',
+                              backgroundColor: '#FF9800',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              width: '100%',
+                              fontSize: '16px',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            1. En camino al restaurante
+                          </button>
+                          <button
+                            onClick={() => {
+                              // Crear un diálogo modal más completo para mostrar todos los detalles del pedido
+                              const modal = document.createElement('div');
+                              modal.style.position = 'fixed';
+                              modal.style.top = '0';
+                              modal.style.left = '0';
+                              modal.style.width = '100%';
+                              modal.style.height = '100%';
+                              modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                              modal.style.display = 'flex';
+                              modal.style.justifyContent = 'center';
+                              modal.style.alignItems = 'center';
+                              modal.style.zIndex = '1000';
+                              
+                              modal.innerHTML = `
+                                <div style="background: white; padding: 20px; border-radius: 8px; max-width: 90%; max-height: 90%; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                  <h3 style="margin-top: 0; color: #333;">Detalles del Pedido</h3>
+                                  
+                                  <h4 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Datos del Cliente</h4>
+                                  <p><strong>Nombre del Cliente:</strong> ${order.customer.name}</p>
+                                  <p><strong>Dirección del Cliente:</strong> ${order.deliveryAddress}</p>
+                                  <p><strong>Teléfono del Cliente:</strong> ${order.customer.phone}</p>
+                                  ${order.deliveryReferences ? `<p><strong>Referencias del Domicilio:</strong> ${order.deliveryReferences}</p>` : ''}
+                                  
+                                  <h4 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Productos del Pedido</h4>
+                                  <ul>
+                                    ${order.items.map(item => `<li>${item.name} x${item.quantity} ($${(item.price * item.quantity).toFixed(2)})</li>`).join('')}
+                                  </ul>
+                                  
+                                  <h4 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Detalles Financieros</h4>
+                                  <p><strong>Monto en Restaurante:</strong> $${order.subtotal.toFixed(2)}</p>
+                                  <p><strong>Tarifa de Entrega:</strong> $${order.deliveryCost.toFixed(2)}</p>
+                                  <p><strong>Total:</strong> $${order.total.toFixed(2)}</p>
+                                  
+                                  <h4 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Detalles Adicionales</h4>
+                                  <p><strong>Método de Pago:</strong> ${order.paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'}</p>
+                                  
+                                  <div style="margin-top: 20px; text-align: center;">
+                                    <button onclick="document.body.removeChild(this.closest('div'))" style="
+                                      padding: 10px 20px;
+                                      background-color: #f44336;
+                                      color: white;
+                                      border: none;
+                                      border-radius: 4px;
+                                      cursor: pointer;
+                                    ">Cerrar</button>
+                                  </div>
+                                </div>
+                              `;
+                              
+                              // Agregar evento para cerrar el modal al hacer clic fuera
+                              modal.onclick = function(event) {
+                                if (event.target === modal) {
+                                  document.body.removeChild(modal);
+                                }
+                              };
+                              
+                              document.body.appendChild(modal);
+                            }}
+                            style={{
+                              padding: '14px 24px',
+                              backgroundColor: '#2196F3',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              width: '100%',
+                              fontSize: '16px',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            📋 Ver Detalles Completos
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* Resto de botones de estados */}
+                      {order.status === OrderStatus.ON_THE_WAY_TO_STORE && (
+                        <button
+                          onClick={async () => {
+                            const result = await OrderService.updateOrderStatus(order.id, OrderStatus.ARRIVED_AT_STORE);
+                            if (!result.success) {
+                              setError(result.message);
+                            }
                           }}
                           style={{
-                            padding: '10px 16px',
+                            padding: '14px 24px',
+                            backgroundColor: '#FF9800',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          2. Llegué al restaurante
+                        </button>
+                      )}
+                      
+                      {order.status === OrderStatus.ARRIVED_AT_STORE && (
+                        <button
+                          onClick={async () => {
+                            const result = await OrderService.updateOrderStatus(order.id, OrderStatus.PICKING_UP_ORDER);
+                            if (!result.success) {
+                              setError(result.message);
+                            }
+                          }}
+                          style={{
+                            padding: '14px 24px',
                             backgroundColor: '#2196F3',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '4px',
+                            borderRadius: '8px',
                             cursor: 'pointer',
-                            width: '100%'
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: 'bold'
                           }}
                         >
-                          Ver Detalles del Pedido
+                          3. Repartidor con alimentos en mochila
                         </button>
-                      </div>
-                    )}
-                    
-                    {order.status === OrderStatus.ON_THE_WAY_TO_STORE && (
-                      <button
-                        onClick={async () => {
-                          const result = await OrderService.updateOrderStatus(order.id, OrderStatus.ARRIVED_AT_STORE);
-                          if (!result.success) {
-                            setError(result.message);
-                          }
-                        }}
-                        style={{
-                          padding: '10px 16px',
-                          backgroundColor: '#FF9800',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          width: '100%'
-                        }}
-                      >
-                        2. Llegué al restaurante
-                      </button>
-                    )}
-                    
-                    {order.status === OrderStatus.ARRIVED_AT_STORE && (
-                      <button
-                        onClick={async () => {
-                          const result = await OrderService.updateOrderStatus(order.id, OrderStatus.PICKING_UP_ORDER);
-                          if (!result.success) {
-                            setError(result.message);
-                          }
-                        }}
-                        style={{
-                          padding: '10px 16px',
-                          backgroundColor: '#2196F3',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          width: '100%'
-                        }}
-                      >
-                        3. Repartidor con alimentos en mochila
-                      </button>
-                    )}
-                    
-                    {order.status === OrderStatus.PICKING_UP_ORDER && (
-                      <button
-                        onClick={async () => {
-                          const result = await OrderService.updateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_CUSTOMER);
-                          if (!result.success) {
-                            setError(result.message);
-                          }
-                        }}
-                        style={{
-                          padding: '10px 16px',
-                          backgroundColor: '#2196F3',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          width: '100%'
-                        }}
-                      >
-                        4. En camino al cliente
-                      </button>
-                    )}
-                    
-                    {order.status === OrderStatus.ON_THE_WAY_TO_CUSTOMER && (
-                      <button
-                        onClick={async () => {
-                          const result = await OrderService.updateOrderStatus(order.id, OrderStatus.DELIVERED);
-                          if (!result.success) {
-                            setError(result.message);
-                          }
-                        }}
-                        style={{
-                          padding: '10px 16px',
-                          backgroundColor: '#f44336',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          width: '100%'
-                        }}
-                      >
-                        5. Pedido entregado
-                      </button>
-                    )}
-                    
-                    {order.status === OrderStatus.DELIVERED && (
-                      <div style={{
-                        padding: '10px 16px',
-                        backgroundColor: '#e8f5e9',
-                        color: '#2e7d32',
-                        border: '1px solid #c8e6c9',
-                        borderRadius: '4px',
-                        textAlign: 'center'
-                      }}>
-                        Pedido entregado
-                      </div>
-                    )}
+                      )}
+                      
+                      {order.status === OrderStatus.PICKING_UP_ORDER && (
+                        <button
+                          onClick={async () => {
+                            const result = await OrderService.updateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_CUSTOMER);
+                            if (!result.success) {
+                              setError(result.message);
+                            }
+                          }}
+                          style={{
+                            padding: '14px 24px',
+                            backgroundColor: '#2196F3',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          4. En camino al cliente
+                        </button>
+                      )}
+                      
+                      {order.status === OrderStatus.ON_THE_WAY_TO_CUSTOMER && (
+                        <button
+                          onClick={async () => {
+                            const result = await OrderService.updateOrderStatus(order.id, OrderStatus.DELIVERED);
+                            if (!result.success) {
+                              setError(result.message);
+                            }
+                          }}
+                          style={{
+                            padding: '14px 24px',
+                            backgroundColor: '#f44336',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          5. Pedido entregado
+                        </button>
+                      )}
+                      
+                      {order.status === OrderStatus.DELIVERED && (
+                        <div style={{
+                          padding: '14px 24px',
+                          backgroundColor: '#e8f5e9',
+                          color: '#2e7d32',
+                          border: '1px solid #c8e6c9',
+                          borderRadius: '8px',
+                          textAlign: 'center',
+                          fontWeight: 'bold'
+                        }}>
+                          ✅ Pedido entregado
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
