@@ -297,175 +297,101 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div style={{
-      padding: '20px',
-      fontFamily: 'Arial, sans-serif',
-      backgroundColor: '#f5f5f5',
-      minHeight: '100vh',
-      paddingBottom: '80px'  /* Espacio para la barra de navegación inferior */
-    }}>
+    <div className="dashboard-container">
       {/* Encabezado */}
-      <div style={{
-        backgroundColor: 'white',
-        padding: '16px 20px',
-        borderRadius: '8px',
-        marginBottom: '20px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
+      <div className="dashboard-header">
         <div>
-          <h1 style={{ margin: '0 0 8px 0', fontSize: '20px', color: '#333' }}>
-            ¡Hola, {deliveryPerson?.name || 'Repartidor'}!
+          <h1>
+            👋 ¡Hola, {deliveryPerson?.name || 'Repartidor'}!
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '14px', color: '#666' }}>
-              ID: {deliveryPerson?.id || 'N/A'}
-            </span>
+          <div className="status-badge" style={{ marginTop: '0.5rem' }}>
+            <span>ID: {deliveryPerson?.id || 'N/A'}</span>
             <div style={{
-              width: '10px',
-              height: '10px',
+              width: '8px',
+              height: '8px',
               borderRadius: '50%',
-              backgroundColor: isOnline ? '#4CAF50' : '#FF9800',
-              boxShadow: isOnline ? '0 0 8px #4CAF50' : '0 0 8px #FF9800'
+              backgroundColor: isOnline ? 'var(--success-color)' : 'var(--warning-color)',
+              boxShadow: isOnline ? '0 0 8px var(--success-color)' : '0 0 8px var(--warning-color)'
             }}></div>
-            <span style={{ fontSize: '14px', color: isOnline ? '#4CAF50' : '#FF9800' }}>
-              {isOnline ? 'Disponible' : 'No disponible'}
+            <span className={isOnline ? 'status-online' : 'status-offline'}>
+              {isOnline ? '● Disponible' : '● No disponible'}
             </span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-            <span style={{ fontSize: '14px', color: '#666' }}>En línea</span>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: '600' }}>En línea</span>
             <div 
               onClick={handleOnlineToggle}
-              style={{
-                width: '50px',
-                height: '26px',
-                borderRadius: '13px',
-                backgroundColor: isOnline ? '#4CAF50' : '#ccc',
-                position: 'relative',
-                cursor: 'pointer'
-              }}
+              className={`toggle-switch ${isOnline ? 'toggle-on' : 'toggle-off'}`}
             >
-              <div style={{
-                width: '22px',
-                height: '22px',
-                borderRadius: '50%',
-                backgroundColor: 'white',
-                position: 'absolute',
-                top: '2px',
-                left: isOnline ? '26px' : '2px',
-                transition: 'left 0.3s ease',
-              }}></div>
+              <div className={`toggle-knob ${isOnline ? 'on' : ''}`}></div>
             </div>
           </label>
           <button 
             onClick={handleLogout}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
+            className="btn btn-danger"
+            style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
           >
-            Salir
+            🚪 Salir
           </button>
         </div>
       </div>
 
       {/* Ganancias */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '16px',
-        marginBottom: '20px'
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '16px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>Hoy</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4CAF50' }}>${dailyEarnings.toFixed(2)}</div>
-          <div style={{ fontSize: '12px', color: '#999' }}>{dailyOrdersCount} pedidos</div>
+      <div className="earnings-grid">
+        <div className="earning-card">
+          <div className="earning-label">📅 Hoy</div>
+          <div className="earning-value">${dailyEarnings.toFixed(2)}</div>
+          <div className="earning-sublabel">{dailyOrdersCount} pedidos</div>
         </div>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '16px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>Esta semana</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2196F3' }}>${weeklyEarnings.toFixed(2)}</div>
-          <div style={{ fontSize: '12px', color: '#999' }}>ganados</div>
+        <div className="earning-card">
+          <div className="earning-label">📊 Esta Semana</div>
+          <div className="earning-value" style={{ background: 'var(--info-color)' }}>${weeklyEarnings.toFixed(2)}</div>
+          <div className="earning-sublabel">ganados</div>
         </div>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '16px',
-          borderRadius: '8px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>Este mes</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FF9800' }}>${monthlyEarnings.toFixed(2)}</div>
-          <div style={{ fontSize: '12px', color: '#999' }}>ganados</div>
+        <div className="earning-card">
+          <div className="earning-label">📈 Este Mes</div>
+          <div className="earning-value" style={{ background: 'var(--warning-color)' }}>${monthlyEarnings.toFixed(2)}</div>
+          <div className="earning-sublabel">ganados</div>
         </div>
       </div>
 
       {/* Mensaje de error */}
       {error && (
         <div style={{
-          backgroundColor: '#ffebee',
-          color: '#c62828',
-          padding: '12px',
-          borderRadius: '4px',
-          marginBottom: '16px',
-          border: '1px solid #ffcdd2'
+          background: 'var(--danger-gradient)',
+          color: 'white',
+          padding: '1rem',
+          borderRadius: '12px',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          fontSize: '0.9375rem',
+          fontWeight: '500',
+          boxShadow: 'var(--shadow-md)',
+          animation: 'slideIn 0.3s ease-out'
         }}>
+          <span style={{ fontSize: '1.25rem' }}>⚠️</span>
           {error}
         </div>
       )}
 
       {/* Pestañas para pedidos activos e historial */}
-      <div style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', borderBottom: '1px solid #eee' }}>
+      <div className="tab-container">
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
           <button
             onClick={() => setActiveTab('active')}
-            style={{
-              flex: 1,
-              padding: '12px',
-              backgroundColor: activeTab === 'active' ? '#f0f0f0' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'active' ? '2px solid #4CAF50' : 'none',
-              fontWeight: activeTab === 'active' ? 'bold' : 'normal',
-              cursor: 'pointer',
-              color: activeTab === 'active' ? '#4CAF50' : '#666'
-            }}
+            className={`tab-button ${activeTab === 'active' ? 'active' : ''}`}
           >
-            Pedidos Activos ({orders.filter(o => o.status !== OrderStatus.DELIVERED).length})
+            📦 Pedidos Activos ({orders.filter(o => o.status !== OrderStatus.DELIVERED).length})
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            style={{
-              flex: 1,
-              padding: '12px',
-              backgroundColor: activeTab === 'history' ? '#f0f0f0' : 'transparent',
-              border: 'none',
-              borderBottom: activeTab === 'history' ? '2px solid #2196F3' : 'none',
-              fontWeight: activeTab === 'history' ? 'bold' : 'normal',
-              cursor: 'pointer',
-              color: activeTab === 'history' ? '#2196F3' : '#666'
-            }}
+            className={`tab-button ${activeTab === 'history' ? 'active' : ''}`}
           >
-            Historial ({orders.filter(o => o.status === OrderStatus.DELIVERED).length})
+            📜 Historial ({orders.filter(o => o.status === OrderStatus.DELIVERED).length})
           </button>
         </div>
         
@@ -473,38 +399,73 @@ const Dashboard: React.FC = () => {
           {activeTab === 'active' ? (
             // Mostrar solo pedidos activos (no entregados)
             orders.filter(order => order.status !== OrderStatus.DELIVERED).length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                No tienes pedidos activos
+              <div className="card" style={{ 
+                textAlign: 'center',
+                padding: '3rem 2rem',
+                background: 'var(--bg-glass)'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem', opacity: 0.5 }}>🎉</div>
+                <p style={{ 
+                  margin: 0, 
+                  color: 'var(--text-secondary)',
+                  fontSize: '1.125rem',
+                  fontWeight: '500'
+                }}>
+                  ¡No tienes pedidos activos!
+                </p>
+                <p style={{ 
+                  margin: '0.5rem 0 0 0', 
+                  color: 'var(--text-muted)',
+                  fontSize: '0.9375rem'
+                }}>
+                  Aprovecha para descansar mientras llegan nuevos pedidos
+                </p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {orders.filter(order => order.status !== OrderStatus.DELIVERED).map(order => (
-                  <div key={order.id} style={{
-                    border: '1px solid #eee',
-                    borderRadius: '8px',
-                    padding: '16px'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <h3 style={{ margin: '0', fontSize: '16px', color: '#333' }}>
-                        Pedido #{order.orderId || order.id}
-                      </h3>
-                      <span style={{
-                        padding: '4px 8px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        backgroundColor: order.status === OrderStatus.DELIVERED ? '#e8f5e9' : 
-                                       order.status === OrderStatus.PENDING ? '#fff3e0' :
-                                       '#e3f2fd',
-                        color: order.status === OrderStatus.DELIVERED ? '#2e7d32' : 
-                               order.status === OrderStatus.PENDING ? '#ef6c00' :
-                               '#1565c0'
+                  <div key={order.id} className="order-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h3 style={{ 
+                        margin: '0', 
+                        fontSize: '1.125rem',
+                        color: 'var(--text-primary)',
+                        fontWeight: '600'
                       }}>
+                        📦 Pedido #{order.orderId || order.id}
+                      </h3>
+                      <span className={`order-status-badge ${
+                        order.status === OrderStatus.DELIVERED ? 'badge-delivered' : 
+                        order.status === OrderStatus.PENDING ? 'badge-pending' :
+                        'badge-assigned'
+                      }`}>
                         {translateOrderStatus(order.status)}
                       </span>
                     </div>
                     
-                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Restaurante:</strong> {order.restaurantName}</p>
-                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Ganancia:</strong> ${order.deliveryCost.toFixed(2)}</p>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '0.75rem',
+                      marginTop: '1rem'
+                    }}>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem' }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>🏪 Restaurante:</strong><br/>
+                        {order.restaurantName}
+                      </div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem' }}>
+                        <strong style={{ color: 'var(--success-color)' }}>💰 Ganancia:</strong><br/>
+                        <span style={{ 
+                          fontSize: '1.25rem', 
+                          fontWeight: '700',
+                          background: 'var(--success-gradient)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent'
+                        }}>
+                          ${order.deliveryCost.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
                     
                     {/* Mostrar productos */}
                     <div style={{ marginTop: '8px' }}>
