@@ -330,6 +330,11 @@ html {
   overflow: hidden;
 }
 
+/* Ocultar botón del historial - Solo mostrar pedidos activos */
+.tab-button:nth-child(2) {
+  display: none !important;
+}
+
 .tab-button {
   flex: 1;
   padding: 1rem;
