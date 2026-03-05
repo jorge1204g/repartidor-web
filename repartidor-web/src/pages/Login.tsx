@@ -45,78 +45,172 @@ const Login: React.FC = () => {
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
+      background: 'var(--bg-primary)',
+      backgroundImage: `
+        radial-gradient(at 0% 0%, rgba(102, 126, 234, 0.3) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(118, 75, 162, 0.3) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(245, 158, 11, 0.2) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(16, 185, 129, 0.2) 0px, transparent 50%)
+      `,
+      backgroundAttachment: 'fixed',
       padding: '20px'
     }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '40px',
-        borderRadius: '8px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      <div className="card" style={{ 
+        backgroundColor: 'var(--bg-card)',
+        padding: '3rem 2.5rem',
+        borderRadius: '16px',
+        boxShadow: 'var(--shadow-xl), var(--glow-primary)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
         width: '100%',
-        maxWidth: '400px'
+        maxWidth: '450px',
+        animation: 'fadeIn 0.6s ease-out'
       }}>
         <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-          <h1 style={{ margin: '0 0 8px 0', fontSize: '24px', color: '#333' }}>
-            Iniciar Sesión - Repartidor
+          <div style={{ 
+            fontSize: '4rem', 
+            marginBottom: '1rem',
+            filter: 'drop-shadow(0 0 20px rgba(102, 126, 234, 0.5))'
+          }}>
+            🚴
+          </div>
+          <h1 style={{ 
+            margin: '0 0 8px 0', 
+            fontSize: '2rem',
+            fontWeight: '700',
+            letterSpacing: '-0.025em',
+            background: 'var(--primary-gradient)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>
+            Acceso Repartidor
           </h1>
-          <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
-            Contacta con el administrador para obtener tu ID de repartidor
+          <p style={{ 
+            margin: '0', 
+            fontSize: '0.9375rem', 
+            color: 'var(--text-muted)'
+          }}>
+            Ingresa tu ID para comenzar
           </p>
         </div>
         
         {error && (
           <div style={{
-            backgroundColor: '#ffebee',
-            color: '#c62828',
-            padding: '12px',
-            borderRadius: '4px',
-            marginBottom: '16px',
-            border: '1px solid #ffcdd2'
+            background: 'var(--danger-gradient)',
+            color: 'white',
+            padding: '1rem',
+            borderRadius: '12px',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            fontSize: '0.9375rem',
+            fontWeight: '500',
+            boxShadow: 'var(--shadow-md)',
+            animation: 'slideIn 0.3s ease-out'
           }}>
+            <span style={{ fontSize: '1.25rem' }}>⚠️</span>
             {error}
           </div>
         )}
         
         <form onSubmit={handleLogin} style={{ marginTop: '8px' }}>
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label 
+              htmlFor="deliveryId" 
+              style={{ 
+                display: 'block', 
+                marginBottom: '0.75rem', 
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                fontSize: '0.9375rem',
+                letterSpacing: '0.025em'
+              }}
+            >
+              🆔 ID de Repartidor
+            </label>
             <input
               type="text"
               id="deliveryId"
-              placeholder="ID de Repartidor"
+              placeholder="ej: repartidor1"
               value={deliveryId}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeliveryId(e.target.value)}
               disabled={loading}
+              autoFocus
               style={{
                 width: '100%',
-                padding: '14px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                fontSize: '16px',
+                padding: '0.875rem 1rem',
+                background: 'var(--bg-secondary)',
+                border: '2px solid rgba(102, 126, 234, 0.3)',
+                borderRadius: '12px',
+                fontSize: '1rem',
+                color: 'var(--text-primary)',
+                transition: 'all 0.3s ease',
+                outline: 'none',
                 boxSizing: 'border-box'
               }}
-              autoFocus
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--primary-color)';
+                e.target.style.boxShadow = 'var(--glow-primary)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'rgba(102, 126, 234, 0.3)';
+                e.target.style.boxShadow = 'none';
+              }}
             />
           </div>
           
           <button
             type="submit"
+            className="btn btn-primary"
             disabled={loading}
-            style={{
-              width: '100%',
-              padding: '14px',
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '16px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1
+            style={{ 
+              width: '100%', 
+              padding: '1rem', 
+              fontSize: '1.0625rem',
+              fontWeight: '600',
+              letterSpacing: '0.025em',
+              marginTop: '0.5rem'
             }}
           >
-            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            {loading ? (
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                <span style={{ 
+                  display: 'inline-block',
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  borderTopColor: 'white',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite'
+                }} />
+                Iniciando sesión...
+              </span>
+            ) : (
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                🔐 Iniciar Sesión
+              </span>
+            )}
           </button>
         </form>
+      </div>
+      
+      <div style={{ 
+        marginTop: '2rem', 
+        textAlign: 'center', 
+        padding: '1rem',
+        background: 'var(--bg-glass)',
+        borderRadius: '12px',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
+        <p style={{ 
+          fontSize: '0.875rem', 
+          color: 'var(--text-muted)',
+          margin: 0
+        }}>
+          💡 Contacta al administrador para obtener tu ID
+        </p>
       </div>
     </div>
   );
