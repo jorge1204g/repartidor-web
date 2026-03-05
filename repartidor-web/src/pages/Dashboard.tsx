@@ -347,12 +347,12 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="earning-card">
           <div className="earning-label">📊 Esta Semana</div>
-          <div className="earning-value" style={{ background: 'var(--info-color)' }}>${weeklyEarnings.toFixed(2)}</div>
+          <div className="earning-value" style={{ color: 'var(--info-color)' }}>${weeklyEarnings.toFixed(2)}</div>
           <div className="earning-sublabel">ganados</div>
         </div>
         <div className="earning-card">
           <div className="earning-label">📈 Este Mes</div>
-          <div className="earning-value" style={{ background: 'var(--warning-color)' }}>${monthlyEarnings.toFixed(2)}</div>
+          <div className="earning-value" style={{ color: 'var(--warning-color)' }}>${monthlyEarnings.toFixed(2)}</div>
           <div className="earning-sublabel">ganados</div>
         </div>
       </div>
