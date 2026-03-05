@@ -328,6 +328,7 @@ html {
   border: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 1.5rem;
   overflow: hidden;
+  display: none; /* OCULTO - Solo mostrar pedidos activos */
 }
 
 .tab-button {
