@@ -378,20 +378,27 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Pedidos Activos - Solo se muestran los activos */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ 
-          fontSize: '1.25rem', 
-          color: 'var(--text-primary)',
-          fontWeight: '600',
-          marginBottom: '1rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          📦 Pedidos en Curso
-        </h2>
-        {orders.filter(order => order.status !== OrderStatus.DELIVERED).length === 0 ? (
+      {/* Pestañas para pedidos activos e historial */}
+      <div className="tab-container">
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`tab-button ${activeTab === 'active' ? 'active' : ''}`}
+          >
+            📦 Pedidos Activos ({orders.filter(o => o.status !== OrderStatus.DELIVERED).length})
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`tab-button ${activeTab === 'history' ? 'active' : ''}`}
+          >
+            📜 Historial ({orders.filter(o => o.status === OrderStatus.DELIVERED).length})
+          </button>
+        </div>
+        
+        <div style={{ padding: '16px' }}>
+          {activeTab === 'active' ? (
+            // Mostrar solo pedidos activos (no entregados)
+            orders.filter(order => order.status !== OrderStatus.DELIVERED).length === 0 ? (
               <div className="card" style={{ 
                 textAlign: 'center',
                 padding: '3rem 2rem',
@@ -444,7 +451,7 @@ const Dashboard: React.FC = () => {
                     }}>
                       <div style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem' }}>
                         <strong style={{ color: 'var(--text-primary)' }}>🏪 Restaurante:</strong><br/>
-                        <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{order.restaurantName}</span>
+                        {order.restaurantName}
                       </div>
                       <div style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem' }}>
                         <strong style={{ color: 'var(--success-color)' }}>💰 Ganancia:</strong><br/>
@@ -475,33 +482,9 @@ const Dashboard: React.FC = () => {
                     {/* Mostrar información de contacto y dirección solo después de aceptar el pedido */}
                     {order.status !== OrderStatus.MANUAL_ASSIGNED || order.assignedToDeliveryId ? (
                       <>
-                        <div style={{ 
-                          marginTop: '1rem',
-                          padding: '1rem',
-                          background: 'rgba(16, 185, 129, 0.1)',
-                          borderRadius: '8px',
-                          border: '1px solid rgba(16, 185, 129, 0.2)'
-                        }}>
-                          <strong style={{ 
-                            fontSize: '0.875rem', 
-                            color: 'var(--success-color)',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                            display: 'block',
-                            marginBottom: '0.75rem'
-                          }}>👤 Información del Cliente</strong>
-                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: '1.8' }}>
-                            <p style={{ margin: '0.5rem 0' }}>
-                              <strong style={{ color: 'var(--text-primary)' }}>Cliente:</strong> <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{order.customer.name}</span>
-                            </p>
-                            <p style={{ margin: '0.5rem 0' }}>
-                              <strong style={{ color: 'var(--text-primary)' }}>Teléfono:</strong> <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{order.customer.phone}</span>
-                            </p>
-                            <p style={{ margin: '0.5rem 0' }}>
-                              <strong style={{ color: 'var(--text-primary)' }}>Dirección:</strong> <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{order.deliveryAddress}</span>
-                            </p>
-                          </div>
-                        </div>
+                        <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Cliente:</strong> {order.customer.name}</p>
+                        <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Teléfono:</strong> {order.customer.phone}</p>
+                        <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Dirección:</strong> {order.deliveryAddress}</p>
                         
                         {/* Botones adicionales después de aceptar el pedido */}
                         {(order.status !== OrderStatus.MANUAL_ASSIGNED || order.assignedToDeliveryId) && (
@@ -768,6 +751,58 @@ Ganancia: $${order.deliveryCost.toFixed(2)}`)}
                   </div>
                 ))}
               </div>
+            )
+          ) : (
+            // Mostrar historial de pedidos (entregados)
+            orders.filter(order => order.status === OrderStatus.DELIVERED).length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                No tienes pedidos en el historial
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {orders.filter(order => order.status === OrderStatus.DELIVERED).map(order => (
+                  <div key={order.id} style={{
+                    border: '1px solid #eee',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    backgroundColor: '#f9f9f9'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <h3 style={{ margin: '0', fontSize: '16px', color: '#333' }}>
+                        Pedido #{order.orderId || order.id}
+                      </h3>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        backgroundColor: '#e8f5e9',
+                        color: '#2e7d32'
+                      }}>
+                        {translateOrderStatus(order.status)}
+                      </span>
+                    </div>
+                    
+                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Restaurante:</strong> {order.restaurantName}</p>
+                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Cliente:</strong> {order.customer.name}</p>
+                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Ganancia:</strong> ${order.deliveryCost.toFixed(2)}</p>
+                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Fecha:</strong> {new Date(order.deliveredAt || order.createdAt).toLocaleString()}</p>
+                    
+                    {/* Mostrar productos */}
+                    <div style={{ marginTop: '8px' }}>
+                      <strong style={{ fontSize: '14px', color: '#333' }}>Productos:</strong>
+                      <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
+                        {order.items.map((item, index) => (
+                          <li key={index} style={{ fontSize: '13px', color: '#333' }}>
+                            {item.name} x{item.quantity} (${(item.price * item.quantity).toFixed(2)})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
         </div>
       </div>
 
