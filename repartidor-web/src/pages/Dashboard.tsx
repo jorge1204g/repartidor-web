@@ -542,7 +542,9 @@ const Dashboard: React.FC = () => {
                               >
                                 🏪 Dirección del Restaurante
                               </button>
-                            ) : order.pickupLocationUrl && order.pickupLocationUrl.trim() !== '' && (
+                            ) : null}
+                            
+                            {order.pickupLocationUrl && order.pickupLocationUrl.trim() !== '' && (
                               <button
                                 onClick={() => window.open(order.pickupLocationUrl, '_blank')}
                                 style={{
