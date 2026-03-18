@@ -13,11 +13,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Circle
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 
@@ -30,11 +33,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.TopAppBarDefaults
 import com.example.aplicacionnuevaprueba1.data.model.Order
 import com.example.aplicacionnuevaprueba1.data.model.OrderStatus
 import com.example.aplicacionnuevaprueba1.data.model.DeliveryPerson
+import com.example.aplicacionnuevaprueba1.data.model.Restaurant
+import com.example.aplicacionnuevaprueba1.data.model.Client
+import com.example.aplicacionnuevaprueba1.ui.theme.CardBackground
+import com.example.aplicacionnuevaprueba1.ui.theme.WarningAmber
+import com.example.aplicacionnuevaprueba1.ui.theme.DangerRed
+import com.example.aplicacionnuevaprueba1.ui.theme.SuccessGreen
+import com.example.aplicacionnuevaprueba1.ui.screens.MessagesScreen
 import com.example.aplicacionnuevaprueba1.ui.viewmodel.AdminViewModel
 import com.example.aplicacionnuevaprueba1.utils.OrderParser
 import com.example.aplicacionnuevaprueba1.utils.WhatsAppLinkGenerator
@@ -62,6 +73,7 @@ fun OrderStatus.toSpanish(): String {
 fun AdminScreen(viewModel: AdminViewModel) {
     val orders by viewModel.orders.collectAsState()
     val deliveryPersons by viewModel.deliveryPersons.collectAsState()
+    val restaurants by viewModel.restaurants.collectAsState()
     val message by viewModel.message.collectAsState()
     
     var selectedTab by remember { mutableStateOf(0) }
@@ -156,6 +168,28 @@ fun AdminScreen(viewModel: AdminViewModel) {
                     onClick = { selectedTab = 4 },
                     text = { 
                         Text(
+                            "Clientes",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = MaterialTheme.typography.titleMedium.fontSize
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedTab == 5,
+                    onClick = { selectedTab = 5 },
+                    text = { 
+                        Text(
+                            "Restaurantes",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = MaterialTheme.typography.titleMedium.fontSize
+                        )
+                    }
+                )
+                Tab(
+                    selected = selectedTab == 6,
+                    onClick = { selectedTab = 6 },
+                    text = { 
+                        Text(
                             "Mensajes",
                             fontWeight = FontWeight.Bold,
                             fontSize = MaterialTheme.typography.titleMedium.fontSize
@@ -173,7 +207,9 @@ fun AdminScreen(viewModel: AdminViewModel) {
                 1 -> PasteOrderScreen(viewModel)
                 2 -> CreateOrderScreen(viewModel)
                 3 -> DeliveryPersonsManagementScreen(deliveryPersons, viewModel)
-                4 -> MessagesScreen(deliveryPersons, viewModel)
+                4 -> ClientsManagementScreen(viewModel)
+                5 -> RestaurantsManagementScreen(restaurants, viewModel)
+                6 -> MessagesScreen(deliveryPersons, viewModel)
             }
         }
     }
@@ -220,7 +256,7 @@ fun OrdersListScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(orders) { order ->
+        items(items = orders, key = { it.id }) { order ->
             OrderCard(order, deliveryPersons, viewModel)
         }
     }
@@ -338,6 +374,39 @@ fun OrderCard(
                         Text(
                             text = "Eliminar",
                             fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    // Botón NUEVO para compartir pedido con repartidores por WhatsApp
+                    IconButton(
+                        onClick = {
+                            // Formatear fecha y hora de creación del pedido
+                            val creationDateTime = formatOrderCreationTime(order.id.toLongOrNull() ?: System.currentTimeMillis())
+                            
+                            val message = "🚨 *¡NUEVO PEDIDO CREADO!* 🚨\n\n" +
+                                         "📦 Pedido #: *#${order.orderId}*\n" +
+                                         "📅 Fecha/Hora: *${creationDateTime}*\n\n" +
+                                         "🏪 Restaurante: ${order.restaurantName}\n\n" +
+                                         "🛍️ Producto: ${order.items.joinToString(", ") { "${it.name} (x${it.quantity})" }}\n\n" +
+                                         "🚴 Envío: *\$${String.format("%.2f", order.deliveryCost)}*\n\n" +
+                                         "🌐 Revisa tu pedido en la app web del repartidor:\n" +
+                                         "https://repartidor-web.vercel.app/\n\n" +
+                                         "_Entra con tu ID y revisa los datos del cliente_"
+                            
+                            // Abrir WhatsApp para seleccionar contacto/grupo SIN número específico
+                            val encodedMessage = Uri.encode(message)
+                            val whatsappUrl = "https://wa.me/?text=${encodedMessage}"
+                            
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(whatsappUrl))
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Share,
+                            contentDescription = "Compartir pedido con repartidores",
+                            tint = Color(0xFF25D366)  // WhatsApp Green
                         )
                     }
                     
@@ -741,6 +810,41 @@ fun OrderDetailsModal(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Botón NUEVO para compartir pedido con repartidores por WhatsApp
+                IconButton(
+                    onClick = {
+                        // Formatear fecha y hora de creación del pedido
+                        val creationDateTime = formatOrderCreationTime(order.id.toLongOrNull() ?: System.currentTimeMillis())
+                        
+                        val message = "🚨 *¡NUEVO PEDIDO CREADO!* 🚨\n\n" +
+                                     "📦 Pedido #: *#${order.orderId}*\n" +
+                                     "📅 Fecha/Hora: *${creationDateTime}*\n\n" +
+                                     "🏪 Restaurante: ${order.restaurantName}\n\n" +
+                                     "🛍️ Producto: ${order.items.joinToString(", ") { "${it.name} (x${it.quantity})" }}\n\n" +
+                                     "🚴 Envío: *\$${String.format("%.2f", order.deliveryCost)}*\n\n" +
+                                     "🌐 Revisa tu pedido en la app web del repartidor:\n" +
+                                     "https://repartidor-web.vercel.app/\n\n" +
+                                     "_Entra con tu ID y revisa los datos del cliente_"
+                        
+                        // Abrir WhatsApp para seleccionar contacto/grupo SIN número específico
+                        val encodedMessage = Uri.encode(message)
+                        val whatsappUrl = "https://wa.me/?text=${encodedMessage}"
+                        
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(whatsappUrl))
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Share,
+                        contentDescription = "Compartir pedido con repartidores",
+                        tint = Color(0xFF25D366)  // WhatsApp Green
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(4.dp))
+                
                 // Botón de compartir por WhatsApp
                 IconButton(
                     onClick = {
@@ -1160,20 +1264,33 @@ fun CreateOrderScreen(viewModel: AdminViewModel) {
             
             Button(
                 onClick = {
-                    // Mensaje con información del pedido
+                    // Mensaje MEJORADO con TODA la información completa del pedido
                     val quantity = productQuantity.toDoubleOrNull() ?: 0.0
                     val price = productPrice.toDoubleOrNull() ?: 0.0
                     val profitAmount = profit.toDoubleOrNull() ?: 0.0
                     val total = quantity * price + profitAmount
                     
-                    val message = "Nuevo pedido creado:\n" +
-                                 "Negocio: ${restaurantName}\n" +
-                                 "Teléfono cliente: ${customerPhone}\n" +
-                                 "Producto: ${productName}\n" +
-                                 "Cantidad: ${productQuantity}\n" +
-                                 "Total: \$${String.format("%.2f", total)}"
+                    val message = "📦 *NUEVO PEDIDO CREADO* 📦\n\n" +
+                                 "🏪 *Negocio:* ${restaurantName.ifEmpty { "No especificado" }}\n\n" +
+                                 "👤 *Información del Cliente:*\n" +
+                                 "   Teléfono: ${customerPhone.ifEmpty { "No registrado" }}\n" +
+                                 "   Dirección: ${deliveryAddress.ifEmpty { "No especificada" }}\n\n" +
+                                 "🛍️ *Producto(s):*\n" +
+                                 "   • ${productName.ifEmpty { "No especificado" }} (x${productQuantity.ifEmpty { "0" }})\n" +
+                                 "   • Precio unitario: \$${String.format("%.2f", price)}\n" +
+                                 "   • Subtotal: \$${String.format("%.2f", quantity * price)}\n\n" +
+                                 "💰 *Costos:*\n" +
+                                 "   • Envío: \$${String.format("%.2f", profitAmount)}\n" +
+                                 "   • *TOTAL: \$${String.format("%.2f", total)}*\n\n" +
+                                 "💳 *Método de pago:* ${paymentMethod.ifEmpty { "No especificado" }}\n\n" +
+                                 "📍 *Ubicaciones:*\n" +
+                                 "   • Recoger en: ${pickupLocationUrl.ifEmpty { "No especificada" }}\n" +
+                                 "   • Mapa cliente: ${customerUrl.ifEmpty { "No disponible" }}\n\n" +
+                                 "📝 *Referencias:* ${deliveryReferences.ifEmpty { "Sin referencias" }}\n\n" +
+                                 "🔢 *Código cliente:* ${customerCode.ifEmpty { "Sin código" }}\n\n" +
+                                 "_Pedido creado manualmente desde App Administrador_"
                     
-                    // Abrir WhatsApp con el mensaje predefinido
+                    // Abrir WhatsApp con el mensaje completo predefinido
                     val encodedMessage = Uri.encode(message)
                     val formattedNumber = customerPhone.replace("[^+0-9]".toRegex(), "")
                     val whatsappUrl = "https://wa.me/${formattedNumber}?text=${encodedMessage}"
@@ -1191,21 +1308,22 @@ fun CreateOrderScreen(viewModel: AdminViewModel) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(55.dp),
+                    .height(60.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF25D366)  // WhatsApp Green
                 )
             ) {
                 Icon(
-                    Icons.Filled.Send,
+                    Icons.Filled.Share,
                     contentDescription = "Compartir por WhatsApp",
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Compartir Pedido por WhatsApp",
-                    fontWeight = FontWeight.Bold
+                    text = "Compartir Pedido Completo por WhatsApp",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = MaterialTheme.typography.bodyLarge.fontSize
                 )
             }
         }
@@ -1321,7 +1439,7 @@ fun DeliveryPersonsManagementScreen(
                 }
             }
         } else {
-            items(deliveryPersons) { person ->
+            items(items = deliveryPersons, key = { it.id }) { person ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -1987,7 +2105,7 @@ fun RiderStatusScreen(
                 }
             }
         } else {
-            items(onlinePersons) { person ->
+            items(items = onlinePersons, key = { it.id }) { person ->
                 RiderStatusCard(person, true) { rider ->
                     viewModel.disconnectDeliveryPerson(rider.id, rider.name)
                 }
@@ -2020,7 +2138,7 @@ fun RiderStatusScreen(
                 }
             }
         } else {
-            items(offlinePersons) { person ->
+            items(items = offlinePersons, key = { it.id }) { person ->
                 RiderStatusCard(person, false) { rider ->
                     // No hacer nada para repartidores desconectados
                 }
@@ -2146,7 +2264,599 @@ fun RiderStatusCard(
     }
 }
 
+@Composable
+fun RestaurantsManagementScreen(
+    restaurants: List<Restaurant>,
+    viewModel: AdminViewModel
+) {
+    var name by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var mapUrl by remember { mutableStateOf("") } // URL de Google Maps
+    
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Header
+        item {
+            Text(
+                text = "Gestión de Restaurantes",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = "Crea cuentas de restaurantes y genera IDs de acceso",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "⚠️ Las cuentas creadas aquí se activan automáticamente",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.tertiary
+            )
+        }
+        
+        // Create new restaurant section
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Crear Nuevo Restaurante",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Nombre del restaurante") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = { phone = it },
+                        label = { Text("Teléfono") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    OutlinedTextField(
+                        value = address,
+                        onValueChange = { address = it },
+                        label = { Text("Dirección") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    OutlinedTextField(
+                        value = mapUrl,
+                        onValueChange = { mapUrl = it },
+                        label = { Text("📍 URL de Google Maps del Negocio") },
+                        placeholder = { Text("https://maps.app.goo.gl/...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = false,
+                        maxLines = 2
+                    )
+                    
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email (opcional)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        label = { Text("Notas (opcional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2
+                    )
+                    
+                    Button(
+                        onClick = {
+                            if (name.isNotBlank() && phone.isNotBlank()) {
+                                viewModel.createRestaurant(name, phone, address, email, notes, mapUrl)
+                                name = ""
+                                phone = ""
+                                address = ""
+                                email = ""
+                                notes = ""
+                                mapUrl = ""
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = name.isNotBlank() && phone.isNotBlank()
+                    ) {
+                        Text("Crear Cuenta de Restaurante")
+                    }
+                }
+            }
+        }
+        
+        // List of existing restaurants
+        item {
+            Text(
+                text = "Restaurantes Existentes (${restaurants.size})",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+            )
+            Divider()
+        }
+        
+        if (restaurants.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No hay restaurantes registrados",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            items(items = restaurants, key = { it.id }) { restaurant ->
+                RestaurantCard(restaurant, viewModel)
+            }
+        }
+    }
+}
 
+@Composable
+fun RestaurantCard(
+    restaurant: Restaurant,
+    viewModel: AdminViewModel
+) {
+    var showCopiedMessage by remember { mutableStateOf(false) }
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { },
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = restaurant.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = {
+                    clipboardManager.setText(AnnotatedString(restaurant.id))
+                    showCopiedMessage = true
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Copiar ID"
+                    )
+                }
+            }
+            
+            Text(
+                text = "ID: ${restaurant.id}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            
+            Text(text = "📞 ${restaurant.phone}")
+            Text(text = "📍 ${restaurant.address}")
+            
+            if (restaurant.email.isNotEmpty()) {
+                Text(text = "✉️ ${restaurant.email}")
+            }
+            
+            if (restaurant.notes.isNotEmpty()) {
+                Text(
+                    text = "📝 ${restaurant.notes}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Estado: ${if (restaurant.isApproved) "✅ Aprobado" else "❌ No aprobado"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (restaurant.isApproved) Color.Green else Color.Red
+                )
+                
+                Text(
+                    text = "📅 ${restaurant.registrationDate}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        clipboardManager.setText(AnnotatedString(restaurant.id))
+                        showCopiedMessage = true
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Copiar ID")
+                }
+                
+                if (!restaurant.isApproved) {
+                    Button(
+                        onClick = { viewModel.approveRestaurant(restaurant.id) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Aprobar")
+                    }
+                }
+                
+                IconButton(onClick = {
+                    viewModel.deleteRestaurant(restaurant.id, restaurant.name)
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+            
+            if (showCopiedMessage) {
+                Text(
+                    text = "✅ ID copiado al portapapeles",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                LaunchedEffect(Unit) {
+                    kotlinx.coroutines.delay(2000)
+                    showCopiedMessage = false
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ClientsManagementScreen(viewModel: AdminViewModel) {
+    val clients by viewModel.clients.collectAsState()
+    var showBlockedClients by remember { mutableStateOf(false) }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Header con título y filtro
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "👥 Gestión de Clientes",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Mostrar bloqueados",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Switch(
+                    checked = showBlockedClients,
+                    onCheckedChange = { showBlockedClients = it }
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Estadísticas
+        val activeClients = clients.count { it.status == "active" }
+        val blockedClients = clients.count { it.status == "blocked" }
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Card(
+                modifier = Modifier.weight(1f),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "✅ Activos",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF2E7D32)
+                    )
+                    Text(
+                        text = "$activeClients",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B5E20)
+                    )
+                }
+            }
+            
+            Card(
+                modifier = Modifier.weight(1f),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "🚫 Bloqueados",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFC62828)
+                    )
+                    Text(
+                        text = "$blockedClients",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFB71C1C)
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Lista de clientes
+        val filteredClients = if (showBlockedClients) {
+            clients
+        } else {
+            clients.filter { it.status == "active" }
+        }
+        
+        if (filteredClients.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = if (showBlockedClients) "📭" else "😊",
+                        fontSize = 48.sp
+                    )
+                    Text(
+                        text = if (showBlockedClients) 
+                            "No hay clientes bloqueados" else 
+                            "No hay clientes activos",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(items = filteredClients, key = { it.id }) { client ->
+                    ClientCard(client, viewModel)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ClientCard(
+    client: Client,
+    viewModel: AdminViewModel
+) {
+    val context = LocalContext.current
+    var showActionsMenu by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    
+    val isBlocked = client.status == "blocked"
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isBlocked) Color(0xFFFFEBEE) else Color(0xFFE8F5E9)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header con nombre y estado
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = client.name.ifEmpty { "Sin nombre" },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isBlocked) Color(0xFFC62828) else Color(0xFF2E7D32)
+                    )
+                    Text(
+                        text = client.email,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                IconButton(onClick = { showActionsMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Más opciones"
+                    )
+                }
+                
+                DropdownMenu(
+                    expanded = showActionsMenu,
+                    onDismissRequest = { showActionsMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(if (isBlocked) "Desbloquear" else "Bloquear") },
+                        onClick = {
+                            if (isBlocked) {
+                                viewModel.unblockClient(client.id, client.name)
+                            } else {
+                                viewModel.blockClient(client.id, client.name)
+                            }
+                            showActionsMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (isBlocked) Icons.Default.Check else Icons.Default.Block,
+                                contentDescription = null
+                            )
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Eliminar cuenta") },
+                        onClick = {
+                            showDeleteDialog = true
+                            showActionsMenu = false
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    )
+                }
+            }
+            
+            // Información del cliente
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "📱 Teléfono",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = client.phone.ifEmpty { "No registrado" },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                
+                Column {
+                    Text(
+                        text = "📅 Fecha creación",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = formatClientTimestamp(client.createdAt),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+            
+            // Badge de estado
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = if (isBlocked) Icons.Default.Block else Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = if (isBlocked) MaterialTheme.colorScheme.error else Color(0xFF2E7D32),
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = if (isBlocked) "CUENTA BLOQUEADA" else "CUENTA ACTIVA",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isBlocked) MaterialTheme.colorScheme.error else Color(0xFF2E7D32)
+                )
+            }
+        }
+    }
+    
+    // Diálogo de confirmación para eliminar
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("¿Eliminar cliente?") },
+            text = {
+                Column {
+                    Text("¿Estás seguro de que deseas eliminar la cuenta de ${client.name}?")
+                    Text(
+                        text = "Esta acción no se puede deshacer.",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteClient(client.id, client.name)
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
 
 fun formatLastSeen(lastSeen: Long): String {
     val now = System.currentTimeMillis()
@@ -2159,3 +2869,28 @@ fun formatLastSeen(lastSeen: Long): String {
         else -> "hace ${(diffMinutes / 1440)} días"
     }
 }
+
+private fun formatClientTimestamp(timestamp: Long): String {
+    try {
+        val sdf = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+        return sdf.format(java.util.Date(timestamp))
+    } catch (e: Exception) {
+        return "N/A"
+    }
+}
+
+// Función para formatear fecha y hora de creación del pedido
+private fun formatOrderCreationTime(orderId: Long): String {
+    // Los IDs de pedidos se generan con timestamp actual
+    val creationTime = if (orderId > 0) orderId else System.currentTimeMillis()
+    try {
+        val sdf = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault())
+        return sdf.format(java.util.Date(creationTime))
+    } catch (e: Exception) {
+        return "N/A"
+    }
+}
+
+
+
+

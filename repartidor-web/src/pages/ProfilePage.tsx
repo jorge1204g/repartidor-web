@@ -200,11 +200,11 @@ const ProfilePage: React.FC = () => {
             ←
           </button>
           <div>
-            <h1 style={{ margin: '0 0 8px 0', fontSize: '20px', color: '#333' }}>
+            <h1 style={{ margin: '0 0 8px 0', fontSize: '20px', color: '#FFF' }}>
               Mi Perfil
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '14px', color: '#666' }}>
+              <span style={{ fontSize: '14px', color: '#FFF' }}>
                 ID: {deliveryPerson?.id || 'N/A'}
               </span>
               <div style={{
@@ -222,7 +222,7 @@ const ProfilePage: React.FC = () => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-            <span style={{ fontSize: '14px', color: '#666' }}>En línea</span>
+            <span style={{ fontSize: '14px', color: '#FFF' }}>En línea</span>
             <div 
               onClick={handleOnlineToggle}
               style={{
@@ -267,7 +267,7 @@ const ProfilePage: React.FC = () => {
       <div style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <div style={{ padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ margin: '0', fontSize: '18px', color: '#333' }}>Información Personal</h2>
+            <h2 style={{ margin: '0', fontSize: '18px', color: '#FFF' }}>Información Personal</h2>
             <button
               onClick={() => isEditing ? handleCancelEdit() : setIsEditing(true)}
               style={{
@@ -287,7 +287,7 @@ const ProfilePage: React.FC = () => {
           {isEditing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '4px', color: '#333', fontWeight: 'bold' }}>Nombre</label>
+                <label style={{ display: 'block', marginBottom: '4px', color: '#FFF', fontWeight: 'bold' }}>Nombre</label>
                 <input
                   type="text"
                   value={editedData.name}
@@ -303,7 +303,7 @@ const ProfilePage: React.FC = () => {
               </div>
               
               <div>
-                <label style={{ display: 'block', marginBottom: '4px', color: '#333', fontWeight: 'bold' }}>Teléfono</label>
+                <label style={{ display: 'block', marginBottom: '4px', color: '#FFF', fontWeight: 'bold' }}>Teléfono</label>
                 <input
                   type="text"
                   value={editedData.phone}
@@ -319,7 +319,7 @@ const ProfilePage: React.FC = () => {
               </div>
               
               <div>
-                <label style={{ display: 'block', marginBottom: '4px', color: '#333', fontWeight: 'bold' }}>Email</label>
+                <label style={{ display: 'block', marginBottom: '4px', color: '#FFF', fontWeight: 'bold' }}>Email</label>
                 <input
                   type="email"
                   value={editedData.email}
@@ -355,30 +355,30 @@ const ProfilePage: React.FC = () => {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '4px', color: '#666', fontWeight: 'bold' }}>Nombre</label>
-                <p style={{ margin: '0', fontSize: '16px', color: '#333' }}>{deliveryPerson?.name || 'N/A'}</p>
+                <label style={{ display: 'block', marginBottom: '4px', color: '#FFF', fontWeight: 'bold' }}>Nombre</label>
+                <p style={{ margin: '0', fontSize: '16px', color: '#FFF' }}>{deliveryPerson?.name || 'N/A'}</p>
               </div>
               
               <div>
-                <label style={{ display: 'block', marginBottom: '4px', color: '#666', fontWeight: 'bold' }}>Teléfono</label>
-                <p style={{ margin: '0', fontSize: '16px', color: '#333' }}>{deliveryPerson?.phone || 'N/A'}</p>
+                <label style={{ display: 'block', marginBottom: '4px', color: '#FFF', fontWeight: 'bold' }}>Teléfono</label>
+                <p style={{ margin: '0', fontSize: '16px', color: '#FFF' }}>{deliveryPerson?.phone || 'N/A'}</p>
               </div>
               
               <div>
-                <label style={{ display: 'block', marginBottom: '4px', color: '#666', fontWeight: 'bold' }}>Email</label>
-                <p style={{ margin: '0', fontSize: '16px', color: '#333' }}>{deliveryPerson?.email || 'N/A'}</p>
+                <label style={{ display: 'block', marginBottom: '4px', color: '#FFF', fontWeight: 'bold' }}>Email</label>
+                <p style={{ margin: '0', fontSize: '16px', color: '#FFF' }}>{deliveryPerson?.email || 'N/A'}</p>
               </div>
               
               <div>
-                <label style={{ display: 'block', marginBottom: '4px', color: '#666', fontWeight: 'bold' }}>Fecha de Registro</label>
-                <p style={{ margin: '0', fontSize: '16px', color: '#333' }}>
+                <label style={{ display: 'block', marginBottom: '4px', color: '#FFF', fontWeight: 'bold' }}>Fecha de Registro</label>
+                <p style={{ margin: '0', fontSize: '16px', color: '#FFF' }}>
                   {deliveryPerson?.registrationDate ? new Date(deliveryPerson.registrationDate).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
               
               <div>
-                <label style={{ display: 'block', marginBottom: '4px', color: '#666', fontWeight: 'bold' }}>Estado</label>
-                <p style={{ margin: '0', fontSize: '16px', color: '#333' }}>
+                <label style={{ display: 'block', marginBottom: '4px', color: '#FFF', fontWeight: 'bold' }}>Estado</label>
+                <p style={{ margin: '0', fontSize: '16px', color: '#FFF' }}>
                   {deliveryPerson?.isApproved ? 'Aprobado' : 'No aprobado'}
                 </p>
               </div>
@@ -395,7 +395,7 @@ const ProfilePage: React.FC = () => {
         marginTop: '20px',
         padding: '20px'
       }}>
-        <h2 style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#333' }}>Opciones</h2>
+        <h2 style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#FFF' }}>Opciones</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <button
             onClick={handleLogout}

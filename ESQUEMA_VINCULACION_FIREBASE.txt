@@ -1,0 +1,206 @@
+================================================================================
+                    ESQUEMA: QUÉ VINCULAR A FIREBASE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                         TU PROYECTO FIREBASE                        │
+│                     (https://console.firebase.google.com)           │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   │ 1. Crear Proyecto
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      REALTIME DATABASE (Necesario)                  │
+│  → Almacenará: Clientes, Pedidos, Mensajes, Restaurantes           │
+│  → URL: https://tu-proyecto-default-rtdb.firebaseio.com            │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   │ 2. Configurar Reglas (Desarrollo)
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    REGLAS DE SEGURIDAD                              │
+│  {                                                                   │
+│    ".read": true,   ← Permite leer datos                            │
+│    ".write": true   ← Permite escribir datos (crear cuenta demo)   │
+│  }                                                                   │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   │ 3. Registrar App Web
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                   APP WEB REGISTRADA                                │
+│  → Nombre: cliente-web                                              │
+│  → Te da: firebaseConfig con credenciales                          │
+│  → Incluye: apiKey, authDomain, databaseURL, projectId, etc.       │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   │ 4. Copiar Credenciales
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                 ARCHIVO .env.local (Tú computadora)                 │
+│  → Ruta: cliente-web/.env.local                                     │
+│  → Contiene:                                                        │
+│     VITE_FIREBASE_API_KEY=...                                       │
+│     VITE_FIREBASE_AUTH_DOMAIN=...                                   │
+│     VITE_FIREBASE_DATABASE_URL=...                                  │
+│     VITE_FIREBASE_PROJECT_ID=...                                    │
+│     VITE_FIREBASE_STORAGE_BUCKET=...                                │
+│     VITE_FIREBASE_MESSAGING_SENDER_ID=...                           │
+│     VITE_FIREBASE_APP_ID=...                                        │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   │ 5. La app lee .env.local
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│              APLICACIÓN WEB (cliente-web)                           │
+│  → Archivo: src/services/Firebase.ts                                │
+│  → Lee variables de entorno                                         │
+│  → Inicializa Firebase                                              │
+│  → Conecta a Realtime Database                                      │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   │ 6. Ejecutar SetupDefaultAccount.ts
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│           SE CREA CUENTA EN FIREBASE                                │
+│  → Ruta: /clients/cliente_default_001                               │
+│  → Datos:                                                           │
+│     {                                                               │
+│       id: "cliente_default_001"                                     │
+│       email: "cliente@demo.com"                                     │
+│       password: "123456"                                            │
+│       name: "Cliente Demo"                                          │
+│       phone: "+57 300 123 4567"                                     │
+│       createdAt: 1234567890                                         │
+│       status: "active"                                              │
+│     }                                                               │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   │ 7. Auto-login intenta ingresar
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    AUTO-LOGIN EXITOSO ✅                            │
+│  → Login.tsx usa AuthService.login()                                │
+│  → Busca en Firebase: clients donde email = "cliente@demo.com"     │
+│  → Verifica password = "123456"                                     │
+│  → Si coincide → Guarda sesión en localStorage                      │
+│  → Redirige a Dashboard (/inicio)                                   │
+└─────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+                         RESUMEN GRÁFICO
+================================================================================
+
+FIREBASE CONSOLE
+    ↓
+Realtime Database (CREAR)
+    ↓
+Reglas: .read=true, .write=true (CONFIGURAR)
+    ↓
+App Web Registrada (REGISTRAR)
+    ↓
+Credenciales (.env.local) (COPIAR Y PEGAR)
+    ↓
+Tu App Web (cliente-web) (EJECUTAR)
+    ↓
+SetupDefaultAccount.ts (AUTO-EJECUTABLE)
+    ↓
+Cuenta creada en: /clients/cliente_default_001
+    ↓
+Auto-login funciona ✅
+
+
+================================================================================
+                    ¿QUÉ ARCHIVOS MODIFICAR?
+================================================================================
+
+TU COMPUTADORA:
+  📁 cliente-web/.env.local                    ← CREAR con credenciales
+  📁 cliente-web/src/services/Firebase.ts      ← YA EXISTE, lee .env.local
+  📁 cliente-web/src/services/SetupDefaultAccount.ts  ← CREAR cuenta
+  📁 cliente-web/src/pages/Login.tsx           ← MODIFICAR con auto-login
+  📁 cliente-web/src/App.tsx                   ← IMPORTAR setup
+
+FIREBASE CONSOLE:
+  🔹 Realtime Database                         ← ACTIVAR
+  🔹 Reglas de seguridad                       ← CONFIGURAR
+  🔹 App Web registrada                        ← REGISTRAR
+  🔹 Datos en: /clients/cliente_default_001   ← SE CREAN AUTOMÁTICAMENTE
+
+
+================================================================================
+                    FLUJO DE DATOS
+================================================================================
+
+1. Tú creas proyecto en Firebase Console
+2. Activas Realtime Database
+3. Configuras reglas (modo desarrollo)
+4. Registras app web
+5. Copias credenciales
+6. Creas .env.local con credenciales
+7. Ejecutas: npm run dev
+8. SetupDefaultAccount.ts se ejecuta automáticamente
+9. Crea cuenta en Firebase: /clients/cliente_default_001
+10. Login.tsx hace auto-login con esa cuenta
+11. ¡Listo! Dashboard cargado ✅
+
+
+================================================================================
+                    MÍNIMO NECESARIO
+================================================================================
+
+PARA QUE FUNCIONE, NECESITAS OBLIGATORIAMENTE:
+
+✅ 1. Proyecto Firebase creado
+✅ 2. Realtime Database activada
+✅ 3. Reglas permiten escritura (desarrollo)
+✅ 4. App web registrada en Firebase
+✅ 5. Archivo .env.local con credenciales reales
+✅ 6. Dependencias instaladas (npm install)
+✅ 7. Servidor iniciado (npm run dev)
+
+SI FALTA ALGUNO → NO FUNCIONA ❌
+
+
+================================================================================
+                    VERIFICACIÓN VISUAL
+================================================================================
+
+DEBERÍAS VER ESTO EN FIREBASE CONSOLE:
+
+Firebase Console
+├── Project Overview ✅
+│   └── tu-proyecto-id
+│
+├── Authentication ⚠️ (Opcional para desarrollo)
+│
+├── Realtime Database ✅ (OBLIGATORIO)
+│   └── clients
+│       └── cliente_default_001
+│           ├── email: "cliente@demo.com"
+│           ├── password: "123456"
+│           └── ...
+│
+├── Storage ⚠️ (Opcional)
+│
+└── Functions ⚠️ (Opcional)
+
+
+DEBERÍAS VER ESTO EN TU PROYECTO:
+
+cliente-web/
+├── .env.local ✅ (CREAR con credenciales)
+├── src/
+│   ├── services/
+│   │   ├── Firebase.ts ✅ (Ya existe)
+│   │   ├── SetupDefaultAccount.ts ✅ (Crear cuenta)
+│   │   └── AuthService.ts ✅ (Login)
+│   └── pages/
+│       └── Login.tsx ✅ (Auto-login)
+└── package.json ✅ (Con firebase como dependencia)
+
+
+================================================================================
+¿DUDAS? Revisa: cliente-web/VERIFICACION_RAPIDA.txt
+================================================================================

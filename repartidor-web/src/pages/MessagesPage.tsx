@@ -244,7 +244,7 @@ const MessagesPage: React.FC = () => {
             ←
           </button>
           <div>
-            <h1 style={{ margin: '0 0 8px 0', fontSize: '20px', color: '#333' }}>
+            <h1 style={{ margin: '0 0 8px 0', fontSize: '20px', color: '#FFF' }}>
               Mensajes con Administrador
               {unreadCount > 0 && (
                 <span style={{
@@ -264,7 +264,7 @@ const MessagesPage: React.FC = () => {
                 </span>
               )}
             </h1>
-            <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
+            <p style={{ margin: '0', fontSize: '14px', color: '#FFF' }}>
               {deliveryPerson ? `Conectado como: ${deliveryPerson.name}` : 'Cargando...'}
             </p>
           </div>
@@ -315,7 +315,7 @@ const MessagesPage: React.FC = () => {
           padding: '16px', 
           borderBottom: '1px solid #eee',
           fontWeight: 'bold',
-          color: '#333'
+          color: '#FFF'
         }}>
           Chat con Administrador
         </div>

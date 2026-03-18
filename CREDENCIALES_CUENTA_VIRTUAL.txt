@@ -1,0 +1,123 @@
+================================================================================
+                    CUENTA VIRTUAL POR DEFECTO - RESUMEN RÁPIDO
+================================================================================
+
+📧 EMAIL:        cliente@demo.com
+🔑 CONTRASEÑA:   123456
+👤 NOMBRE:       Cliente Demo
+📱 TELÉFONO:     +57 300 123 4567
+
+================================================================================
+FUNCIONAMIENTO:
+================================================================================
+
+✅ WEB (cliente-web):
+   - Auto-login automático al abrir la app
+   - Botón "⚡ Entrada Rápida (Demo)" en pantalla de login
+   - Credenciales visibles en pantalla
+   - Se crea cuenta automáticamente en Firebase
+
+✅ ANDROID (app):
+   - Pantalla de login con auto-login
+   - Botón "⚡ Entrada Rápida (Demo)"
+   - Persistencia de sesión
+   - Diseño Material Design 3
+
+================================================================================
+ARCHIVOS PRINCIPALES:
+================================================================================
+
+WEB:
+  📁 cliente-web/src/pages/Login.tsx (auto-login + botón rápido)
+  📁 cliente-web/src/services/SetupDefaultAccount.ts (crea cuenta Firebase)
+  📁 cliente-web/Cuenta_Virtual_Defecto.md (documentación)
+
+ANDROID:
+  📁 app/src/main/java/.../ui/screens/ClientLoginScreen.kt (pantalla login)
+  📁 app/src/main/java/.../MainActivity.kt (gestiona estado login)
+
+================================================================================
+CAMBIAR CREDENCIALES:
+================================================================================
+
+1. Web: 
+   - cliente-web/src/pages/Login.tsx (líneas DEFAULT_EMAIL y DEFAULT_PASSWORD)
+   - cliente-web/src/services/SetupDefaultAccount.ts (objeto DEFAULT_ACCOUNT)
+
+2. Android:
+   - ClientLoginScreen.kt (constantes DEFAULT_EMAIL y DEFAULT_PASSWORD)
+
+3. Firebase:
+   - Realtime Database → /clients/cliente_default_001
+   - Editar campos email y password manualmente
+
+================================================================================
+ELIMINAR AUTO-LOGIN:
+================================================================================
+
+WEB:
+  - Comentar useEffect en Login.tsx (líneas ~18-48)
+  - O eliminar import en App.tsx
+
+ANDROID:
+  - Modificar isClientLoggedIn() en MainActivity.kt para retornar false
+  - O eliminar ClientLoginScreen y siempre mostrar AdminScreen
+
+================================================================================
+PRUEBAS RÁPIDAS:
+================================================================================
+
+WEB:
+  $ cd cliente-web
+  $ npm run dev
+  → Abrir http://localhost:5173
+  → Debería auto-login automáticamente
+
+ANDROID:
+  → Compilar e instalar app en Android Studio
+  → Al abrir, debería auto-login
+  → Ver Logcat para debug
+
+================================================================================
+SEGURIDAD - ⚠️ IMPORTANTE:
+================================================================================
+
+SOLO PARA DESARROLLO Y PRUEBAS
+NO USAR EN PRODUCCIÓN
+
+En producción usar:
+  ✅ Firebase Authentication real
+  ✅ Contraseñas encriptadas
+  ✅ Registro obligatorio de usuarios
+  ✅ Tokens JWT
+  ✅ Validación de emails
+
+================================================================================
+ESTRUCTURA EN FIREBASE:
+================================================================================
+
+/clients
+  └── cliente_default_001
+      ├── id: "cliente_default_001"
+      ├── email: "cliente@demo.com"
+      ├── password: "123456"
+      ├── name: "Cliente Demo"
+      ├── phone: "+57 300 123 4567"
+      ├── createdAt: [timestamp]
+      ├── status: "active"
+      └── address: "Dirección de prueba, Ciudad"
+
+================================================================================
+DOCUMENTACIÓN COMPLETA:
+================================================================================
+
+Ver archivo: Cuenta_Virtual_Automatica_Completa.md
+Incluye:
+  - Instrucciones detalladas
+  - Flujos completos
+  - Código de ejemplo
+  - Solución de problemas
+
+================================================================================
+                              IMPLEMENTACIÓN COMPLETADA ✅
+================================================================================

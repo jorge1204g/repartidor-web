@@ -204,13 +204,13 @@ const OrdersPage: React.FC = () => {
       {/* Lista de pedidos activos - NUEVO DISEÑO */}
       <div style={{ backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <div style={{ padding: '16px' }}>
-          {orders.filter(order => order.status !== OrderStatus.DELIVERED).length === 0 ? (
+          {orders.filter(order => order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.CANCELLED).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
               No tienes pedidos activos
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {orders.filter(order => order.status !== OrderStatus.DELIVERED).map(order => (
+              {orders.filter(order => order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.CANCELLED).map(order => (
                 <div key={order.id} style={{
                   border: 'none',
                   borderRadius: '16px',
@@ -273,7 +273,7 @@ const OrdersPage: React.FC = () => {
                         borderRadius: '12px',
                         textAlign: 'center'
                       }}>
-                        <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#666', fontWeight: '600' }}>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#FFF', fontWeight: '600' }}>
                           💰 GANANCIA
                         </p>
                         <p style={{ margin: '0', fontSize: '24px', fontWeight: 'bold', color: '#4CAF50' }}>
@@ -287,7 +287,7 @@ const OrdersPage: React.FC = () => {
                         borderRadius: '12px',
                         textAlign: 'center'
                       }}>
-                        <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#666', fontWeight: '600' }}>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#FFF', fontWeight: '600' }}>
                           📦 MONTO RESTAURANTE
                         </p>
                         <p style={{ margin: '0', fontSize: '24px', fontWeight: 'bold', color: '#2196F3' }}>
@@ -301,10 +301,10 @@ const OrdersPage: React.FC = () => {
                         borderRadius: '12px',
                         textAlign: 'center'
                       }}>
-                        <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#666', fontWeight: '600' }}>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#FFF', fontWeight: '600' }}>
                           💵 MÉTODO DE PAGO
                         </p>
-                        <p style={{ margin: '0', fontSize: '16px', fontWeight: 'bold', color: '#333' }}>
+                        <p style={{ margin: '0', fontSize: '16px', fontWeight: 'bold', color: '#FFF' }}>
                           {order.paymentMethod === 'cash' ? '🪙 Efectivo' : '💳 Transferencia'}
                         </p>
                       </div>
@@ -318,14 +318,14 @@ const OrdersPage: React.FC = () => {
                         borderRadius: '12px',
                         marginBottom: '20px'
                       }}>
-                        <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#ef6c00', fontWeight: 'bold' }}>
+                        <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#FFF', fontWeight: 'bold' }}>
                           🛒 PRODUCTOS DEL PEDIDO
                         </h4>
                         <ul style={{ margin: '0', paddingLeft: '20px' }}>
                           {order.items.map((item, index) => (
                             <li key={index} style={{ 
                               fontSize: '14px', 
-                              color: '#333',
+                              color: '#FFF',
                               marginBottom: '6px',
                               paddingBottom: '6px',
                               borderBottom: '1px dashed #ffb74d'
@@ -347,34 +347,105 @@ const OrdersPage: React.FC = () => {
                       borderRadius: '12px',
                       marginBottom: '20px'
                     }}>
-                      <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1565c0', fontWeight: 'bold' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#FFF', fontWeight: 'bold' }}>
                         📍 DIRECCIÓN DE ENTREGA
                       </h4>
-                      <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#333' }}>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#FFF' }}>
                         <strong>Dirección:</strong> {order.deliveryAddress}
                       </p>
                       {order.deliveryReferences && (
-                        <p style={{ margin: '0', fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
+                        <p style={{ margin: '0', fontSize: '13px', color: '#FFF', fontStyle: 'italic' }}>
                           📝 Referencias: {order.deliveryReferences}
                         </p>
                       )}
                     </div>
                     
-                    {/* Información de Contacto - Solo después de aceptar */}
-                    {order.status !== OrderStatus.MANUAL_ASSIGNED || order.assignedToDeliveryId ? (
+                    {/* Coordenadas del Cliente - NUEVO APARTADO */}
+                    {(order.customerLocation?.latitude && order.customerLocation?.longitude) ? (
+                      <div style={{
+                        backgroundColor: '#fff3e0',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        marginBottom: '20px'
+                      }}>
+                        <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#FFF', fontWeight: 'bold' }}>
+                          🗺️ COORDENADAS DEL CLIENTE
+                        </h4>
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px',
+                          alignItems: 'center'
+                        }}>
+                          <div style={{
+                            width: '100%',
+                            padding: '12px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderRadius: '8px',
+                            textAlign: 'center'
+                          }}>
+                            <p style={{ margin: '0', fontSize: '13px', color: '#666', fontWeight: '600' }}>
+                              Latitud: <span style={{ color: '#FF9800', fontSize: '16px' }}>{order.customerLocation.latitude.toFixed(6)}</span>
+                            </p>
+                            <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#666', fontWeight: '600' }}>
+                              Longitud: <span style={{ color: '#FF9800', fontSize: '16px' }}>{order.customerLocation.longitude.toFixed(6)}</span>
+                            </p>
+                          </div>
+                          
+                          <button
+                            onClick={() => {
+                              const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${order.customerLocation.latitude},${order.customerLocation.longitude}`;
+                              window.open(mapsUrl, '_blank');
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              backgroundColor: '#4CAF50',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontSize: '15px',
+                              fontWeight: 'bold',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '8px',
+                              boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
+                            }}
+                          >
+                            🗺️ Abrir en Google Maps
+                          </button>
+                          
+                          <p style={{
+                            margin: '0',
+                            fontSize: '11px',
+                            color: '#FFF',
+                            opacity: 0.8,
+                            textAlign: 'center',
+                            fontStyle: 'italic'
+                          }}>
+                            Toca el botón para ver la ubicación exacta en Maps
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+                    
+                    {/* Información de Contacto - Mostrar siempre para PENDING y MANUAL_ASSIGNED con asignación */}
+                    {order.status === OrderStatus.PENDING || order.status === OrderStatus.ACCEPTED || (order.status === OrderStatus.MANUAL_ASSIGNED && order.assignedToDeliveryId) ? (
                       <div style={{
                         backgroundColor: '#e8f5e9',
                         padding: '16px',
                         borderRadius: '12px',
                         marginBottom: '20px'
                       }}>
-                        <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#2e7d32', fontWeight: 'bold' }}>
+                        <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#FFF', fontWeight: 'bold' }}>
                           👤 INFORMACIÓN DEL CLIENTE
                         </h4>
-                        <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#333' }}>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#FFF' }}>
                           <strong>Nombre:</strong> {order.customer.name}
                         </p>
-                        <p style={{ margin: '0', fontSize: '14px', color: '#333' }}>
+                        <p style={{ margin: '0', fontSize: '14px', color: '#FFF' }}>
                           <strong>Teléfono:</strong> {order.customer.phone}
                         </p>
                       </div>
@@ -400,13 +471,17 @@ const OrdersPage: React.FC = () => {
                     
                     {/* Botones de acción */}
                     <div style={{ marginTop: '20px' }}>
-                      {order.status === OrderStatus.MANUAL_ASSIGNED && !order.assignedToDeliveryId && (
+                      {/* Botón para aceptar pedidos PENDING o MANUAL_ASSIGNED sin asignar */}
+                      {(order.status === OrderStatus.PENDING || order.status === OrderStatus.MANUAL_ASSIGNED) && !order.assignedToDeliveryId && (
                         <button
                           onClick={async () => {
                             if (!deliveryPerson) return;
+                            const confirmacion = window.confirm('¿Estás seguro de que quieres aceptar este pedido?');
+                            if (!confirmacion) return;
+                            
                             const result = await OrderService.acceptOrder(order.id, deliveryPerson.id, deliveryPerson.name);
                             if (result.success) {
-                              alert('Pedido aceptado exitosamente');
+                              alert('✅ Pedido aceptado exitosamente');
                             } else {
                               setError(result.message);
                             }
@@ -425,6 +500,33 @@ const OrdersPage: React.FC = () => {
                           }}
                         >
                           ✅ Aceptar Pedido
+                        </button>
+                      )}
+                      
+                      {/* Botón para rechazar/cancelar asignación (solo si está asignado a este repartidor) */}
+                      {order.assignedToDeliveryId === deliveryPerson?.id && order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.CANCELLED && (
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm('¿Seguro que quieres cancelar este pedido?')) return;
+                            const result = await OrderService.updateOrderStatus(order.id, OrderStatus.CANCELLED);
+                            if (!result.success) {
+                              setError(result.message);
+                            }
+                          }}
+                          style={{
+                            padding: '14px 24px',
+                            backgroundColor: '#f44336',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            width: '100%',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            marginTop: '12px'
+                          }}
+                        >
+                          ❌ Cancelar Pedido
                         </button>
                       )}
                       
@@ -501,6 +603,17 @@ const OrdersPage: React.FC = () => {
                                   <p><strong>Teléfono del Cliente:</strong> ${order.customer.phone}</p>
                                   ${order.deliveryReferences ? `<p><strong>Referencias del Domicilio:</strong> ${order.deliveryReferences}</p>` : ''}
                                   
+                                  <h4 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">🗺️ Coordenadas GPS</h4>
+                                  <p><strong>Latitud:</strong> ${order.customerLocation?.latitude?.toFixed(6) || 'N/A'}</p>
+                                  <p><strong>Longitud:</strong> ${order.customerLocation?.longitude?.toFixed(6) || 'N/A'}</p>
+                                  <p style="margin-top: 8px;">
+                                    <a href="https://www.google.com/maps/search/?api=1&query=${order.customerLocation?.latitude || ''},${order.customerLocation?.longitude || ''}" 
+                                       target="_blank" 
+                                       style="color: #2196F3; text-decoration: none; font-weight: bold;">
+                                       🗺️ Abrir en Google Maps →
+                                    </a>
+                                  </p>
+                                  
                                   <h4 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Productos del Pedido</h4>
                                   <ul>
                                     ${order.items.map(item => `<li>${item.name} x${item.quantity} ($${(item.price * item.quantity).toFixed(2)})</li>`).join('')}
@@ -514,16 +627,27 @@ const OrdersPage: React.FC = () => {
                                   <h4 style="color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px;">Detalles Adicionales</h4>
                                   <p><strong>Método de Pago:</strong> ${order.paymentMethod === 'cash' ? 'Efectivo' : 'Transferencia'}</p>
                                   
-                                  <div style="margin-top: 20px; text-align: center;">
-                                    <button onclick="document.body.removeChild(this.closest('div'))" style="
-                                      padding: 10px 20px;
-                                      background-color: #f44336;
-                                      color: white;
-                                      border: none;
-                                      border-radius: 4px;
-                                      cursor: pointer;
-                                    ">Cerrar</button>
-                                  </div>
+                                  <div style="margin-top: 20px; text-align: center; display: flex; gap: 10px; justify-content: center;">
+                                   <button onclick="const modal = this.closest(&quot;div[style*='position: fixed']&quot;); if (modal) { document.body.removeChild(modal); window.location.href = '/inicio'; }" style="
+                                     padding: 10px 20px;
+                                     background-color: #4CAF50;
+                                  color: white;
+                                     border: none;
+                                     border-radius: 4px;
+                                     cursor: pointer;
+                                     font-weight: bold;
+                                   ">🏠 Inicio</button>
+                                   
+                                   <button onclick="const modal = this.closest(&quot;div[style*='position: fixed']&quot;); if (modal) { document.body.removeChild(modal); }" style="
+                                     padding: 10px 20px;
+                                     background-color: #f44336;
+                                  color: white;
+                                     border: none;
+                                     border-radius: 4px;
+                                     cursor: pointer;
+                                   ">Cerrar</button>
+                                 </div>
+
                                 </div>
                               `;
                               

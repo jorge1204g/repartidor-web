@@ -3,6 +3,7 @@ package com.example.aplicacionnuevaprueba1.data.repository
 import com.example.aplicacionnuevaprueba1.data.model.DeliveryPerson
 import com.example.aplicacionnuevaprueba1.data.model.Order
 import com.example.aplicacionnuevaprueba1.data.model.OrderStatus
+import com.example.aplicacionnuevaprueba1.data.model.Restaurant
 import com.example.aplicacionnuevaprueba1.utils.NotificationSender
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -20,6 +21,8 @@ class OrderRepository {
     private val database = FirebaseDatabase.getInstance()
     private val ordersRef = database.getReference("orders")
     private val deliveryPersonsRef = database.getReference("delivery_persons")
+    private val clientsRef = database.getReference("clients")
+    private val restaurantsRef = database.getReference("restaurants")
     private val fcmTokensRef = database.getReference("fcm_tokens")
     private val messagesRef = database.getReference("messages")
     private val notificationSender = NotificationSender()
@@ -322,7 +325,9 @@ class OrderRepository {
             val key = deliveryPersonsRef.push().key ?: return Result.failure(Exception("Failed to generate key"))
             println("🔄 Repository: Generated key: $key")
             
-            val currentDate = java.time.LocalDateTime.now().toString()
+            // Usar SimpleDateFormat en lugar de LocalDateTime para compatibilidad con API 24
+            val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+            val currentDate = dateFormat.format(java.util.Date())
             var personWithId = deliveryPerson.copy(
                 id = key,
                 registrationDate = currentDate
@@ -525,6 +530,126 @@ class OrderRepository {
             OrderStatus.ON_THE_WAY_TO_CUSTOMER -> "Repartidor en camino a tu ubicación"
             OrderStatus.DELIVERED -> "Pedido entregado"
             OrderStatus.CANCELLED -> "Pedido cancelado"
+        }
+    }
+    
+    // Restaurant management methods
+    suspend fun createRestaurant(restaurant: Restaurant): Result<String> {
+        return try {
+            val key = restaurantsRef.push().key ?: return Result.failure(Exception("Failed to generate key"))
+            val restaurantWithId = restaurant.copy(id = key, isApproved = true)
+            restaurantsRef.child(key).setValue(restaurantWithId).await()
+            
+            // Asegurar que el campo isApproved esté explícitamente en true
+            restaurantsRef.child(key).child("isApproved").setValue(true).await()
+            
+            println("✅ Restaurante creado con ID: $key y isApproved=true")
+            Result.success(key)
+        } catch (e: Exception) {
+            println("❌ Error creating restaurant: ${e.message}")
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun updateRestaurant(restaurantId: String, updates: Map<String, Any?>): Result<Unit> {
+        return try {
+            restaurantsRef.child(restaurantId).updateChildren(updates).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun deleteRestaurant(restaurantId: String): Result<Unit> {
+        return try {
+            restaurantsRef.child(restaurantId).removeValue().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    fun observeRestaurants(): Flow<List<Restaurant>> = callbackFlow {
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val restaurants = mutableListOf<Restaurant>()
+                for (child in snapshot.children) {
+                    val restaurant = child.getValue(Restaurant::class.java)
+                    restaurant?.let { restaurants.add(it) }
+                }
+                trySend(restaurants.sortedByDescending { it.createdAt })
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                trySend(emptyList())
+            }
+        }
+        
+        restaurantsRef.addValueEventListener(listener)
+        awaitClose { restaurantsRef.removeEventListener(listener) }
+    }
+    
+    suspend fun getRestaurantById(restaurantId: String): Result<Restaurant> {
+        return try {
+            val snapshot = restaurantsRef.child(restaurantId).get().await()
+            val restaurant = snapshot.getValue(Restaurant::class.java)
+            if (restaurant != null) {
+                Result.success(restaurant)
+            } else {
+                Result.failure(Exception("Restaurant not found"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    // Client management methods
+    fun observeClients(): Flow<List<com.example.aplicacionnuevaprueba1.data.model.Client>> = callbackFlow {
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val clients = mutableListOf<com.example.aplicacionnuevaprueba1.data.model.Client>()
+                for (child in snapshot.children) {
+                    val client = child.getValue(com.example.aplicacionnuevaprueba1.data.model.Client::class.java)
+                    client?.let { clients.add(it) }
+                }
+                trySend(clients.sortedByDescending { it.createdAt })
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                trySend(emptyList())
+            }
+        }
+        
+        clientsRef.addValueEventListener(listener)
+        awaitClose { clientsRef.removeEventListener(listener) }
+    }
+    
+    suspend fun blockClient(clientId: String): Result<Unit> {
+        return try {
+            clientsRef.child(clientId).child("status").setValue("blocked").await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun unblockClient(clientId: String): Result<Unit> {
+        return try {
+            clientsRef.child(clientId).child("status").setValue("active").await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun deleteClient(clientId: String): Result<Unit> {
+        return try {
+            // Eliminar al cliente directamente
+            // Los pedidos no se eliminan automáticamente para mantener el historial
+            clientsRef.child(clientId).removeValue().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

@@ -85,3 +85,16 @@ data class DeliveryPerson(
     val isActive: Boolean = false,
     val lastSeen: Long = 0L
 )
+
+data class Client(
+    val id: String = "",
+    val email: String = "",
+    val password: String = "",
+    val name: String = "",
+    val phone: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+    val status: String = "active", // active, blocked
+    val address: String = "",
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0
+)

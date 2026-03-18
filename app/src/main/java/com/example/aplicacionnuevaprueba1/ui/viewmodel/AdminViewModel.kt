@@ -31,12 +31,20 @@ class AdminViewModel : ViewModel() {
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages.asStateFlow()
     
+    private val _restaurants = MutableStateFlow<List<Restaurant>>(emptyList())
+    val restaurants: StateFlow<List<Restaurant>> = _restaurants.asStateFlow()
+    
+    private val _clients = MutableStateFlow<List<com.example.aplicacionnuevaprueba1.data.model.Client>>(emptyList())
+    val clients: StateFlow<List<com.example.aplicacionnuevaprueba1.data.model.Client>> = _clients.asStateFlow()
+    
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
     
     init {
         observeOrders()
         observeDeliveryPersons()
+        observeRestaurants()
+        observeClients()
         observeMessages()
         
         // Observar cambios en _orders y actualizar las listas filtradas
@@ -77,6 +85,40 @@ class AdminViewModel : ViewModel() {
             repository.observeMessagesForReceiverAndSender("admin").collect { messages ->
                 _messages.value = messages
             }
+        }
+    }
+    
+    private fun observeRestaurants() {
+        viewModelScope.launch {
+            repository.observeRestaurants().collect { restaurants ->
+                println("🔄 Admin received ${restaurants.size} restaurants")
+                restaurants.forEach { restaurant ->
+                    println("   🏪 ${restaurant.name} (ID: ${restaurant.id}) - Approved: ${restaurant.isApproved}")
+                }
+                _restaurants.value = restaurants
+            }
+        }
+    }
+    
+    private fun observeClients() {
+        viewModelScope.launch {
+            repository.observeClients().collect { clientsList ->
+                println("🔄 Admin received ${clientsList.size} clients")
+                clientsList.forEach { client ->
+                    val dateStr = formatTimestamp(client.createdAt)
+                    println("   👤 ${client.name} (${client.email}) - Status: ${client.status} - Creado: $dateStr")
+                }
+                _clients.value = clientsList
+            }
+        }
+    }
+    
+    private fun formatTimestamp(timestamp: Long): String {
+        try {
+            val sdf = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+            return sdf.format(java.util.Date(timestamp))
+        } catch (e: Exception) {
+            return "N/A"
         }
     }
     
@@ -337,5 +379,122 @@ class AdminViewModel : ViewModel() {
         }
     }
     
+    // Restaurant management functions
+    fun createRestaurant(name: String, phone: String, address: String, email: String = "", notes: String = "", mapUrl: String = "") {
+        viewModelScope.launch {
+            val restaurant = Restaurant(
+                name = name,
+                phone = phone,
+                address = address,
+                email = email,
+                notes = notes,
+                mapUrl = mapUrl,
+                isApproved = true,
+                registrationDate = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date()),
+                createdAt = System.currentTimeMillis()
+            )
+            
+            repository.createRestaurant(restaurant).fold(
+                onSuccess = { 
+                    _message.value = "Restaurante creado exitosamente. ID: $it"
+                    observeRestaurants()
+                },
+                onFailure = { _message.value = "Error al crear restaurante: ${it.message}" }
+            )
+        }
+    }
+    
+    fun updateRestaurant(restaurantId: String, updates: Map<String, Any?>) {
+        viewModelScope.launch {
+            repository.updateRestaurant(restaurantId, updates).fold(
+                onSuccess = { 
+                    _message.value = "Restaurante actualizado exitosamente"
+                    observeRestaurants()
+                },
+                onFailure = { _message.value = "Error al actualizar restaurante: ${it.message}" }
+            )
+        }
+    }
+    
+    fun deleteRestaurant(restaurantId: String, restaurantName: String) {
+        viewModelScope.launch {
+            repository.deleteRestaurant(restaurantId).fold(
+                onSuccess = { 
+                    _message.value = "Restaurante $restaurantName eliminado"
+                    observeRestaurants()
+                },
+                onFailure = { _message.value = "Error al eliminar restaurante: ${it.message}" }
+            )
+        }
+    }
+    
+    fun approveRestaurant(restaurantId: String) {
+        viewModelScope.launch {
+            repository.updateRestaurant(restaurantId, mapOf("isApproved" to true)).fold(
+                onSuccess = { 
+                    _message.value = "Restaurante aprobado exitosamente"
+                    observeRestaurants()
+                },
+                onFailure = { _message.value = "Error al aprobar restaurante: ${it.message}" }
+            )
+        }
+    }
+    
+    fun rejectRestaurant(restaurantId: String, restaurantName: String) {
+        viewModelScope.launch {
+            repository.updateRestaurant(restaurantId, mapOf("isApproved" to false)).fold(
+                onSuccess = { 
+                    _message.value = "Restaurante $restaurantName rechazado"
+                    observeRestaurants()
+                },
+                onFailure = { _message.value = "Error al rechazar restaurante: ${it.message}" }
+            )
+        }
+    }
+    
+    fun refreshRestaurants() {
+        observeRestaurants()
+    }
+    
+    // Client management functions
+    fun blockClient(clientId: String, clientName: String) {
+        viewModelScope.launch {
+            repository.blockClient(clientId).fold(
+                onSuccess = { 
+                    _message.value = "Cliente $clientName bloqueado exitosamente"
+                    observeClients()
+                },
+                onFailure = { _message.value = "Error al bloquear cliente: ${it.message}" }
+            )
+        }
+    }
+    
+    fun unblockClient(clientId: String, clientName: String) {
+        viewModelScope.launch {
+            repository.unblockClient(clientId).fold(
+                onSuccess = { 
+                    _message.value = "Cliente $clientName desbloqueado exitosamente"
+                    observeClients()
+                },
+                onFailure = { _message.value = "Error al desbloquear cliente: ${it.message}" }
+            )
+        }
+    }
+    
+    fun deleteClient(clientId: String, clientName: String) {
+        viewModelScope.launch {
+            repository.deleteClient(clientId).fold(
+                onSuccess = { 
+                    _message.value = "Cliente $clientName eliminado"
+                    observeClients()
+                },
+                onFailure = { _message.value = "Error al eliminar cliente: ${it.message}" }
+            )
+        }
+    }
+    
+    fun refreshClients() {
+        observeClients()
+    }
 
 }

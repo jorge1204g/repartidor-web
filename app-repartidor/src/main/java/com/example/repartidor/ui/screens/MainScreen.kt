@@ -3,22 +3,26 @@ package com.example.repartidor.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.repartidor.data.model.DeliveryPerson
 import com.example.repartidor.data.model.Order
 import com.example.repartidor.ui.viewmodel.DeliveryViewModel
@@ -124,18 +128,12 @@ fun MainScreen(
                             }
                         )
                     }
-                    1 -> MapScreen(
-                        onBackToDashboard = { /* Navigate back to dashboard */ }
+                    1 -> OrderHistoryScreen(
+                        deliveryId = viewModel.deliveryId.value ?: "",
+                        viewModel = viewModel
                     )
-                    2 -> WalletScreen(
+                    2 -> MessagesScreen(
                         viewModel = viewModel,
-                        onBackToDashboard = { /* Navigate back to dashboard */ }
-                    )
-                    3 -> MessagesScreen(
-                        viewModel = viewModel,
-                        onBackToDashboard = { /* Navigate back to dashboard */ }
-                    )
-                    4 -> SettingsScreen(
                         onBackToDashboard = { /* Navigate back to dashboard */ }
                     )
                 }
@@ -462,30 +460,91 @@ fun OrderItem(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Título del pedido con numeración [#4.0]
             Text(
-                text = "Pedido #${order.orderId.ifEmpty { order.id }}",
-                style = MaterialTheme.typography.titleMedium
+                text = "[#4.0] Pedido #${order.orderId.ifEmpty { order.id }}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
-            Text(text = "Teléfono: ${order.customer.phone}")
-            Text(text = "Restaurante: ${order.restaurantName}")
-            if (order.pickupLocationUrl.isNotEmpty()) {
-                Text(text = "URL del Maps donde hay que recojer: ${order.pickupLocationUrl}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            
+            // Estado del pedido con color según orderType [#4.5]
+            val stateText = when (order.orderType) {
+                "MANUAL" -> "Creado por Administrador"
+                "RESTAURANT" -> "Asignado por Restaurante"
+                else -> translateOrderStatus(order.status)
             }
-            if (order.deliveryAddress.isNotEmpty()) {
-                Text(text = "Dirección de entrega: ${order.deliveryAddress}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            val stateColor = when (order.orderType) {
+                "MANUAL" -> Color(0xFFFF9800) // Naranja
+                "RESTAURANT" -> Color(0xFF9C27B0) // Morado
+                else -> MaterialTheme.colorScheme.primary
             }
-            if (order.deliveryReferences.isNotEmpty()) {
-                Text(text = "Referencias de entrega: ${order.deliveryReferences}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = stateColor),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "[#4.5] $stateText",
+                    modifier = Modifier.padding(8.dp),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
             }
-            if (order.customerUrl.isNotEmpty()) {
-                Text(text = "URL del cliente: ${order.customerUrl}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
-            }
-            Text(text = "Método de pago: ${order.paymentMethod}")
-            Text(text = "Costo de envío: \$${order.deliveryCost}")
+            
+            // Información del restaurante [#4.1]
+            Text(
+                text = "[#4.1] 🏪 Restaurante: ${order.restaurantName}",
+                color = Color.White,
+                fontWeight = FontWeight.Medium
+            )
+            
+            // Ganancia [#4.2]
+            Text(
+                text = "[#4.2] 💰 Ganancia: \$${order.deliveryCost}",
+                color = Color(0xFF4CAF50),
+                fontWeight = FontWeight.Bold,
+                fontSize = MaterialTheme.typography.bodyLarge.fontSize
+            )
+            
+            // Productos [#4.3]
             if (order.items.isNotEmpty()) {
-                Text(text = "Productos:", fontWeight = FontWeight.Bold)
+                Text(
+                    text = "[#4.3] Productos:",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFf093fb)
+                )
                 order.items.forEach { item ->
-                    Text(text = "  - ${item.name} x${item.quantity} (\$${String.format("%.2f", item.unitPrice)} c/u) Subtotal: \$${String.format("%.2f", item.subtotal)}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                    Text(
+                        text = "  • ${item.name} x${item.quantity} (\$${String.format("%.2f", item.unitPrice)} c/u)",
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        color = Color.White
+                    )
+                }
+            }
+            
+            // Mensaje cuando el pedido está asignado manualmente pero no aceptado [#4.4]
+            if (order.status == "MANUAL_ASSIGNED" && order.assignedToDeliveryId.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFC107).copy(alpha = 0.1f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFC107).copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "⚠️",
+                            fontSize = 20.sp
+                        )
+                        Text(
+                            text = "[#4.4] Toca \"Aceptar Pedido\" para ver información de contacto y dirección",
+                            color = Color(0xFFFFC107),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize
+                        )
+                    }
                 }
             }
             
@@ -493,21 +552,32 @@ fun OrderItem(
             when (order.status) {
                 "MANUAL_ASSIGNED" -> {
                     if (order.assignedToDeliveryId.isEmpty() && !hasActiveOrder) {
-                        // Botón para aceptar pedido manualmente asignado
+                        // Botón para aceptar pedido manualmente asignado [#3.1]
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = { onAccept(order.id) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(50.dp),
-                            shape = androidx.compose.material3.MaterialTheme.shapes.medium,
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = com.example.repartidor.ui.theme.PrimaryGreen
+                                containerColor = Color(0xFF11998e)
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 6.dp,
+                                pressedElevation = 4.dp
                             )
                         ) {
+                            Icon(
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = "Aceptar Pedido",
-                                fontWeight = FontWeight.Bold
+                                text = "[#3.1] Aceptar Pedido",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
                             )
                         }
                     } else if (order.assignedToDeliveryId.isEmpty() && hasActiveOrder) {
@@ -521,97 +591,152 @@ fun OrderItem(
                     }
                 }
                 "ACCEPTED" -> {
-                    // Botón para ir en camino al restaurante
-                    Spacer(modifier = Modifier.height(8.dp))
+                    // Botón para ir en camino al restaurante [#3.2]
+                    Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { onGoToStore(order.id) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        shape = androidx.compose.material3.MaterialTheme.shapes.medium,
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = com.example.repartidor.ui.theme.SecondaryGreen
+                            containerColor = Color(0xFFf093fb)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 6.dp,
+                            pressedElevation = 4.dp
                         )
                     ) {
+                        Icon(
+                            imageVector = Icons.Filled.DirectionsBike,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "1. En camino al restaurante",
-                            fontWeight = FontWeight.Bold
+                            text = "[#3.2] 1. En camino al restaurante",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
                 }
                 "ON_THE_WAY_TO_STORE" -> {
-                    // Botón para indicar que llegó al restaurante
-                    Spacer(modifier = Modifier.height(8.dp))
+                    // Botón para indicar que llegó al restaurante [#3.4]
+                    Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { onArrivedAtStore(order.id) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        shape = androidx.compose.material3.MaterialTheme.shapes.medium,
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = com.example.repartidor.ui.theme.WarningOrange
+                            containerColor = Color(0xFF2193b0)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 6.dp,
+                            pressedElevation = 4.dp
                         )
                     ) {
+                        Icon(
+                            imageVector = Icons.Filled.Store,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "2. Llegué al restaurante",
-                            fontWeight = FontWeight.Bold
+                            text = "[#3.4] 2. Llegué al restaurante",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
                 }
                 "ARRIVED_AT_STORE" -> {
-                    // Botón para indicar que el repartidor tiene los alimentos
-                    Spacer(modifier = Modifier.height(8.dp))
+                    // Botón para indicar que el repartidor tiene los alimentos [#3.5]
+                    Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { onPickingUpOrder(order.id) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        shape = androidx.compose.material3.MaterialTheme.shapes.medium,
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = com.example.repartidor.ui.theme.AccentBlue
+                            containerColor = Color(0xFF8e2de2)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 6.dp,
+                            pressedElevation = 4.dp
                         )
                     ) {
+                        Icon(
+                            imageVector = Icons.Filled.ShoppingBag,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "3. Repartidor con alimentos en mochila",
-                            fontWeight = FontWeight.Bold
+                            text = "[#3.5] 3. Repartidor con alimentos en mochila",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
                 }
                 "PICKING_UP_ORDER" -> {
-                    // Botón para indicar que va en camino al cliente
-                    Spacer(modifier = Modifier.height(8.dp))
+                    // Botón para indicar que va en camino al cliente [#3.6]
+                    Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { onGoToCustomer(order.id) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        shape = androidx.compose.material3.MaterialTheme.shapes.medium,
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = com.example.repartidor.ui.theme.LightBlue
+                            containerColor = Color(0xFF00c6ff)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 6.dp,
+                            pressedElevation = 4.dp
                         )
                     ) {
+                        Icon(
+                            imageVector = Icons.Filled.DirectionsBike,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "4. En camino al cliente",
-                            fontWeight = FontWeight.Bold
+                            text = "[#3.6] 4. En camino al cliente",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
                 }
                 "ON_THE_WAY_TO_CUSTOMER" -> {
-                    // Botón para indicar que el pedido fue entregado
-                    Spacer(modifier = Modifier.height(8.dp))
+                    // Botón para indicar que el pedido fue entregado [#3.7]
+                    Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { showCodeDialog = true },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        shape = androidx.compose.material3.MaterialTheme.shapes.medium,
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = com.example.repartidor.ui.theme.DangerRed
+                            containerColor = Color(0xFFcb2d3e)
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 6.dp,
+                            pressedElevation = 4.dp
                         )
                     ) {
+                        Icon(
+                            imageVector = Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "5. Pedido entregado",
-                            fontWeight = FontWeight.Bold
+                            text = "[#3.7] 5. Pedido entregado",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
                     
@@ -831,29 +956,30 @@ fun OrderDetailScreen(
                             fontWeight = FontWeight.Bold
                         )
                         
-                        Text("Restaurante: ${order.restaurantName}")
+                        Text("Restaurante: ${order.restaurantName}", color = Color.White)
                         
                         if (order.deliveryAddress.isNotEmpty()) {
-                            Text("Dirección de entrega: ${order.deliveryAddress}")
+                            Text("Dirección de entrega: ${order.deliveryAddress}", color = Color.White)
                         }
                         
                         if (order.items.isNotEmpty()) {
                             Text(
                                 text = "Productos:",
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
                             )
                             order.items.forEach { item ->
-                                Text("• ${item.name} x${item.quantity} - \$${item.subtotal}")
+                                Text("• ${item.name} x${item.quantity} - \$${item.subtotal}", color = Color.White)
                             }
                         }
                         
-                        Text("Método de pago: ${order.paymentMethod}")
+                        Text("Método de pago: ${order.paymentMethod}", color = Color.White)
                         
                         if (order.deliveryReferences.isNotEmpty()) {
-                            Text("Referencias del domicilio: ${order.deliveryReferences}")
+                            Text("Referencias del domicilio: ${order.deliveryReferences}", color = Color.White)
                         }
                         
-                        Text("Ganancia: \$${order.deliveryCost}")
+                        Text("Ganancia: \$${order.deliveryCost}", color = Color.White)
                     }
                 }
             }
@@ -1064,22 +1190,22 @@ fun CompletedOrderItem(
                 text = "Pedido #${order.orderId.ifEmpty { order.id }}",
                 style = MaterialTheme.typography.titleMedium
             )
-            Text(text = "Cliente: ${order.customer.name}")
+            Text(text = "Cliente: ${order.customer.name}", color = Color.White)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Teléfono: ${order.customer.phone}")
+                Text(text = "Teléfono: ${order.customer.phone}", color = Color.White)
                 Text(text = "Ganancia: \$${order.deliveryCost}", color = MaterialTheme.colorScheme.primary)
             }
-            Text(text = "Restaurante: ${order.restaurantName}")
-            Text(text = "Total: \$${order.total}")
-            Text(text = "Fecha: ${order.dateTime}")
+            Text(text = "Restaurante: ${order.restaurantName}", color = Color.White)
+            Text(text = "Total: \$${order.total}", color = Color.White)
+            Text(text = "Fecha: ${order.dateTime}", color = Color.White)
             if (order.items.isNotEmpty()) {
-                Text(text = "Producto: ${order.items[0].name}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                Text(text = "Producto: ${order.items[0].name}", fontSize = MaterialTheme.typography.bodySmall.fontSize, color = Color.White)
             }
             if (order.deliveryAddress.isNotEmpty()) {
-                Text(text = "Dir. Entrega: ${order.deliveryAddress}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                Text(text = "Dir. Entrega: ${order.deliveryAddress}", fontSize = MaterialTheme.typography.bodySmall.fontSize, color = Color.White)
             }
             Text(
                 text = "Estado: ${order.status}",

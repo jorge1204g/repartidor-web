@@ -7,6 +7,54 @@ import { Order, OrderStatus } from '../types/Order';
 import { DeliveryPerson } from '../types/DeliveryPerson';
 import { useMessage } from '../contexts/MessageContext';
 
+// Agregar estilos CSS para animaciones
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      transform: translateY(50px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+`;
+document.head.appendChild(style);
+
+
 const Dashboard: React.FC = () => {
   const [deliveryPerson, setDeliveryPerson] = useState<DeliveryPerson | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -320,7 +368,7 @@ const Dashboard: React.FC = () => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: '600' }}>En línea</span>
+            <span style={{ fontSize: '0.875rem', color: '#FFF', fontWeight: '600' }}>En línea</span>
             <div 
               onClick={handleOnlineToggle}
               className={`toggle-switch ${isOnline ? 'toggle-on' : 'toggle-off'}`}
@@ -407,7 +455,7 @@ const Dashboard: React.FC = () => {
                 <div style={{ fontSize: '4rem', marginBottom: '1rem', opacity: 0.5 }}>🎉</div>
                 <p style={{ 
                   margin: 0, 
-                  color: 'var(--text-secondary)',
+                  color: '#FFF',
                   fontSize: '1.125rem',
                   fontWeight: '500'
                 }}>
@@ -432,29 +480,38 @@ const Dashboard: React.FC = () => {
                         color: 'var(--text-primary)',
                         fontWeight: '600'
                       }}>
-                        📦 Pedido #{order.orderId || order.id}
+                        <span style={{ color: '#f093fb' }}>[#4.0]</span> 📦 Pedido #{order.orderId || order.id}
                       </h3>
                       <span className={`order-status-badge ${
                         order.status === OrderStatus.DELIVERED ? 'badge-delivered' : 
                         order.status === OrderStatus.PENDING ? 'badge-pending' :
                         'badge-assigned'
-                      }`}>
-                        {translateOrderStatus(order.status)}
+                      }`} style={{
+                        background: order.orderType === 'MANUAL' 
+                          ? 'linear-gradient(135deg, #FF9800 0%, #FF5722 100%)' // Naranja para MANUAL
+                          : 'linear-gradient(135deg, #9C27B0 0%, #673AB7 100%)', // Morado para RESTAURANT
+                        color: 'white',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        border: 'none',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                      }}>
+                        <span style={{ color: '#FFF', opacity: 0.9, marginRight: '4px' }}>[#4.5]</span> 
+                        {order.orderType === 'MANUAL' ? 'Creado por Administrador' : 
+                         order.orderType === 'RESTAURANT' ? 'Pedido creado por el cliente' : 
+                         translateOrderStatus(order.status)}
                       </span>
                     </div>
                     
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                      gap: '0.75rem',
-                      marginTop: '1rem'
-                    }}>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem' }}>
-                        <strong style={{ color: 'var(--text-primary)' }}>🏪 Restaurante:</strong><br/>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginTop: '1rem' }}>
+                      <div style={{ color: '#FFF', fontSize: '0.9375rem' }}>
+                        <strong style={{ color: '#f093fb' }}>[#4.1] 🏪 Restaurante:</strong><br/>
                         {order.restaurantName}
                       </div>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem' }}>
-                        <strong style={{ color: 'var(--success-color)' }}>💰 Ganancia:</strong><br/>
+                      <div style={{ color: '#FFF', fontSize: '0.9375rem' }}>
+                        <strong style={{ color: '#f093fb' }}>[#4.2] 💰 Ganancia:</strong><br/>
                         <span style={{ 
                           fontSize: '1.25rem', 
                           fontWeight: '700',
@@ -469,10 +526,10 @@ const Dashboard: React.FC = () => {
                     
                     {/* Mostrar productos */}
                     <div style={{ marginTop: '8px' }}>
-                      <strong style={{ fontSize: '14px', color: '#333' }}>Productos:</strong>
+                      <strong style={{ fontSize: '14px', color: '#f093fb' }}>[#4.3] Productos:</strong>
                       <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
                         {order.items.map((item, index) => (
-                          <li key={index} style={{ fontSize: '13px', color: '#333' }}>
+                          <li key={index} style={{ fontSize: '13px', color: '#FFF' }}>
                             {item.name} x{item.quantity} (${(item.price * item.quantity).toFixed(2)})
                           </li>
                         ))}
@@ -482,105 +539,220 @@ const Dashboard: React.FC = () => {
                     {/* Mostrar información de contacto y dirección solo después de aceptar el pedido */}
                     {order.status !== OrderStatus.MANUAL_ASSIGNED || order.assignedToDeliveryId ? (
                       <>
-                        <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Cliente:</strong> {order.customer.name}</p>
-                        <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Teléfono:</strong> {order.customer.phone}</p>
-                        <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Dirección:</strong> {order.deliveryAddress}</p>
+                    <div style={{ marginBottom: '8px', padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <div style={{ color: '#a8edea', fontSize: '12px', marginBottom: '4px', fontWeight: '600' }}>📌 ELEMENTO #1 - INFORMACIÓN BÁSICA</div>
+                      <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong style={{ color: '#f093fb' }}>[#1.1]</strong> Restaurante: {order.restaurantName}</p>
+                      <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong style={{ color: '#f093fb' }}>[#1.2]</strong> Cliente: {order.customer.name}</p>
+                      <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong style={{ color: '#f093fb' }}>[#1.3]</strong> Teléfono: {order.customer.phone}</p>
+                      <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong style={{ color: '#f093fb' }}>[#1.4]</strong> Dirección: {order.deliveryAddress}</p>
+                    </div>
                         
                         {/* Botones adicionales después de aceptar el pedido */}
                         {(order.status !== OrderStatus.MANUAL_ASSIGNED || order.assignedToDeliveryId) && (
-                          <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {/* Botón Llamar al Cliente - Gradiente Azul */}
                             <button
                               onClick={() => window.open(`tel:${order.customer.phone}`, '_blank')}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 14px rgba(33, 150, 243, 0.3)';
+                              }}
                               style={{
-                                padding: '8px 12px',
-                                backgroundColor: '#2196F3',
+                                padding: '14px 20px',
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                 color: 'white',
                                 border: 'none',
-                                borderRadius: '4px',
+                                borderRadius: '16px',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center'
+                                justifyContent: 'center',
+                                gap: '10px',
+                                fontSize: '15px',
+                                fontWeight: '600',
+                                boxShadow: '0 4px 14px rgba(33, 150, 243, 0.3)',
+                                transition: 'all 0.3s ease',
+                                position: 'relative',
+                                overflow: 'hidden'
                               }}
                             >
-                              📞 Llamar al Cliente
+                              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#2.1</span>
+                              <span style={{ fontSize: '18px' }}>📞</span>
+                              <span>Llamar al Cliente</span>
                             </button>
                             
+                            {/* Botón Ubicación del Cliente - Gradiente Verde */}
                             {order.customerUrl && order.customerUrl.trim() !== '' && (
                               <button
-                                onClick={() => window.open(order.customerUrl, '_blank')}
+                                onClick={() => {
+                             const googleMapsUrl = `https://www.google.com/maps?q=${order.customerLocation?.latitude || 0},${order.customerLocation?.longitude || 0}`;
+                                window.open(googleMapsUrl, '_blank');
+                              }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
+                                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(76, 175, 80, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0)';
+                                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(76, 175, 80, 0.3)';
+                                }}
                                 style={{
-                                  padding: '8px 12px',
-                                  backgroundColor: '#4CAF50',
+                                  padding: '14px 20px',
+                                  background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
                                   color: 'white',
                                   border: 'none',
-                                  borderRadius: '4px',
+                                  borderRadius: '16px',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  justifyContent: 'center'
+                                  justifyContent: 'center',
+                                  gap: '10px',
+                                  fontSize: '15px',
+                                  fontWeight: '600',
+                                  boxShadow: '0 4px 14px rgba(76, 175, 80, 0.3)',
+                                  transition: 'all 0.3s ease',
+                                  position: 'relative',
+                                  overflow: 'hidden'
                                 }}
                               >
-                                📍 Ubicación del Cliente
+                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#2.2</span>
+                                <span style={{ fontSize: '18px' }}>📍</span>
+                                <span>Ubicación del Cliente</span>
                               </button>
                             )}
                             
+                            {/* Botón Dirección del Restaurante - Gradiente Naranja */}
                             {(order.restaurantMapUrl && order.restaurantMapUrl.trim() !== '') ? (
                               <button
                                 onClick={() => window.open(order.restaurantMapUrl, '_blank')}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
+                                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0)';
+                                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 152, 0, 0.3)';
+                                }}
                                 style={{
-                                  padding: '8px 12px',
-                                  backgroundColor: '#FF9800',
+                                  padding: '14px 20px',
+                                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
                                   color: 'white',
                                   border: 'none',
-                                  borderRadius: '4px',
+                                  borderRadius: '16px',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  justifyContent: 'center'
+                                  justifyContent: 'center',
+                                  gap: '10px',
+                                  fontSize: '15px',
+                                  fontWeight: '600',
+                                  boxShadow: '0 4px 14px rgba(255, 152, 0, 0.3)',
+                                  transition: 'all 0.3s ease',
+                                  position: 'relative',
+                                  overflow: 'hidden'
                                 }}
                               >
-                                🏪 Dirección del Restaurante
+                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#2.3</span>
+                                <span style={{ fontSize: '18px' }}>🏪</span>
+                                <span>Dirección del Restaurante</span>
                               </button>
                             ) : null}
                             
                             {order.pickupLocationUrl && order.pickupLocationUrl.trim() !== '' && (
                               <button
                                 onClick={() => window.open(order.pickupLocationUrl, '_blank')}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
+                                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0)';
+                                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 152, 0, 0.3)';
+                                }}
                                 style={{
-                                  padding: '8px 12px',
-                                  backgroundColor: '#FF9800',
+                                  padding: '14px 20px',
+                                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
                                   color: 'white',
                                   border: 'none',
-                                  borderRadius: '4px',
+                                  borderRadius: '16px',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  justifyContent: 'center'
+                                  justifyContent: 'center',
+                                  gap: '10px',
+                                  fontSize: '15px',
+                                  fontWeight: '600',
+                                  boxShadow: '0 4px 14px rgba(255, 152, 0, 0.3)',
+                                  transition: 'all 0.3s ease',
+                                  position: 'relative',
+                                  overflow: 'hidden'
                                 }}
                               >
-                                🏪 Dirección del Restaurante
+                                <span style={{ fontSize: '18px' }}>🏪</span>
+                                <span>Dirección del Restaurante</span>
                               </button>
                             )}
                             
+                            {/* Botón Copiar Teléfono - Gradiente Violeta */}
                             <button
                               onClick={() => {
                                 navigator.clipboard.writeText(order.customer.phone);
-                                alert('Número de teléfono copiado al portapapeles');
+                                // Mostrar notificación más elegante
+                                const notification = document.createElement('div');
+                                notification.style.cssText = `
+                                  position: fixed;
+                                  top: 20px;
+                                  right: 20px;
+                                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                  color: white;
+                                  padding: 16px 24px;
+                                  border-radius: 12px;
+                                  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+                                  z-index: 10000;
+                                  animation: slideIn 0.3s ease;
+                                  font-weight: 600;
+                                `;
+                                notification.innerHTML = '✅ ¡Teléfono copiado!';
+                                document.body.appendChild(notification);
+                                setTimeout(() => {
+                                  notification.style.animation = 'slideOut 0.3s ease';
+                                  setTimeout(() => notification.remove(), 300);
+                                }, 2000);
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(156, 39, 176, 0.4)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 14px rgba(156, 39, 176, 0.3)';
                               }}
                               style={{
-                                padding: '8px 12px',
-                                backgroundColor: '#9C27B0',
-                                color: 'white',
+                                padding: '14px 20px',
+                                background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+                                color: '#333',
                                 border: 'none',
-                                borderRadius: '4px',
+                                borderRadius: '16px',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center'
+                                justifyContent: 'center',
+                                gap: '10px',
+                                fontSize: '15px',
+                                fontWeight: '600',
+                                boxShadow: '0 4px 14px rgba(156, 39, 176, 0.3)',
+                                transition: 'all 0.3s ease',
+                                position: 'relative',
+                                overflow: 'hidden'
                               }}
                             >
-                              📋 Copiar Número de Teléfono
+                              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#2.4</span>
+                              <span style={{ fontSize: '18px' }}>📋</span>
+                              <span>Copiar Número de Teléfono</span>
                             </button>
                           </div>
                         )}
@@ -592,161 +764,388 @@ const Dashboard: React.FC = () => {
                         color: '#f44336',
                         fontStyle: 'italic'
                       }}>
-                        Toca "Aceptar Pedido" para ver información de contacto y dirección
+                        <span style={{ color: '#f093fb', fontWeight: '600' }}>[#4.4]</span> Toca "Aceptar Pedido" para ver información de contacto y dirección
                       </p>
                     )}
                     
-                    <div style={{ marginTop: '12px' }}>
+                    <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {/* Botón Aceptar Pedido - Gradiente Verde */}
                       {order.status === OrderStatus.MANUAL_ASSIGNED && !order.assignedToDeliveryId && (
                         <button
                           onClick={() => handleAcceptOrder(order)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(76, 175, 80, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(76, 175, 80, 0.3)';
+                          }}
                           style={{
-                            padding: '10px 16px',
-                            backgroundColor: '#4CAF50',
+                            padding: '16px 24px',
+                            background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '4px',
+                            borderRadius: '16px',
                             cursor: 'pointer',
-                            width: '100%'
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            boxShadow: '0 4px 14px rgba(76, 175, 80, 0.3)',
+                            transition: 'all 0.3s ease',
+                            position: 'relative',
+                            overflow: 'hidden'
                           }}
                         >
-                          Aceptar Pedido
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.1</span>
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '20px' }}>✅</span>
+                            <span>Aceptar Pedido</span>
+                          </span>
                         </button>
                       )}
                       
+                      {/* Botón En camino al restaurante - Gradiente Naranja */}
                       {order.status === OrderStatus.MANUAL_ASSIGNED && order.assignedToDeliveryId === deliveryPerson?.id && (
                         <button
                           onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_STORE)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 152, 0, 0.3)';
+                          }}
                           style={{
-                            padding: '10px 16px',
-                            backgroundColor: '#FF9800',
+                            padding: '16px 24px',
+                            background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '4px',
+                            borderRadius: '16px',
                             cursor: 'pointer',
-                            width: '100%'
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            boxShadow: '0 4px 14px rgba(255, 152, 0, 0.3)',
+                            transition: 'all 0.3s ease',
+                            position: 'relative',
+                            overflow: 'hidden'
                           }}
                         >
-                          1. En camino al restaurante
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.2</span>
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '20px' }}>🛵</span>
+                            <span>1. En camino al restaurante</span>
+                          </span>
                         </button>
                       )}
                       
+                      {/* Botones cuando el pedido está ACEPTADO */}
                       {order.status === OrderStatus.ACCEPTED && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {/* Botón En camino al restaurante */}
                           <button
                             onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_STORE)}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 152, 0, 0.3)';
+                            }}
                             style={{
-                              padding: '10px 16px',
-                              backgroundColor: '#FF9800',
+                              padding: '16px 24px',
+                              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
                               color: 'white',
                               border: 'none',
-                              borderRadius: '4px',
+                              borderRadius: '16px',
                               cursor: 'pointer',
-                              width: '100%'
+                              width: '100%',
+                              fontSize: '16px',
+                              fontWeight: '700',
+                              boxShadow: '0 4px 14px rgba(255, 152, 0, 0.3)',
+                              transition: 'all 0.3s ease',
+                              position: 'relative',
+                              overflow: 'hidden'
                             }}
                           >
-                            1. En camino al restaurante
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '20px' }}>🛵</span>
+                              <span>1. En camino al restaurante</span>
+                            </span>
                           </button>
+                          
+                          {/* Botón Ver Detalles - Gradiente Azul */}
                           <button
-                            onClick={() => alert(`Detalles del Pedido:
-Restaurante: ${order.restaurantName}
-Cliente: ${order.customer.name}
-Teléfono: ${order.customer.phone}
-Dirección: ${order.deliveryAddress}
-Ganancia: $${order.deliveryCost.toFixed(2)}`)}
+                            onClick={() => {
+                              // Crear modal más elegante para detalles
+                              const modal = document.createElement('div');
+                              modal.style.cssText = `
+                                position: fixed;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                background: rgba(0,0,0,0.7);
+                                backdrop-filter: blur(5px);
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                                z-index: 10000;
+                                animation: fadeIn 0.3s ease;
+                              `;
+                              
+                              modal.innerHTML = `
+                                <div style="
+                                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                  padding: 32px;
+                                  border-radius: 24px;
+                                  max-width: 90%;
+                                  max-height: 90%;
+                                  overflow-y: auto;
+                                  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                                  animation: slideUp 0.3s ease;
+                                ">
+                                  <h3 style="margin: 0 0 24px 0; color: white; font-size: 24px; text-align: center;">
+                                    📋 Detalles del Pedido
+                                  </h3>
+                                  
+                                  <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 16px; margin-bottom: 16px;">
+                                    <h4 style="margin: 0 0 12px 0; color: #a8edea; font-size: 16px;">👤 Información del Cliente</h4>
+                                    <p style="margin: 8px 0; color: white; line-height: 1.6;"><strong>Nombre:</strong> ${order.customer.name}</p>
+                                    <p style="margin: 8px 0; color: white; line-height: 1.6;"><strong>Teléfono:</strong> ${order.customer.phone}</p>
+                                    <p style="margin: 8px 0; color: white; line-height: 1.6;"><strong>Dirección:</strong> ${order.deliveryAddress}</p>
+                                    ${order.deliveryReferences ? `<p style="margin: 8px 0; color: #fed6e3; line-height: 1.6;"><strong>Referencias:</strong> ${order.deliveryReferences}</p>` : ''}
+                                  </div>
+                                  
+                                  <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 16px; margin-bottom: 16px;">
+                                    <h4 style="margin: 0 0 12px 0; color: #f093fb; font-size: 16px;">🛒 Productos</h4>
+                                    <ul style="margin: 8px 0; padding-left: 20px; color: white; line-height: 1.8;">
+                                      ${order.items.map(item => `<li>${item.name} x${item.quantity} ($${(item.price * item.quantity).toFixed(2)})</li>`).join('')}
+                                    </ul>
+                                  </div>
+                                  
+                                  <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 16px;">
+                                    <h4 style="margin: 0 0 12px 0; color: #38ef7d; font-size: 16px;">💰 Información Financiera</h4>
+                                    <p style="margin: 8px 0; color: white; line-height: 1.6;"><strong>Restaurante:</strong> $${order.subtotal.toFixed(2)}</p>
+                                    <p style="margin: 8px 0; color: white; line-height: 1.6;"><strong>Entrega:</strong> $${order.deliveryCost.toFixed(2)}</p>
+                                    <p style="margin: 8px 0; color: #38ef7d; line-height: 1.6; font-size: 18px; font-weight: bold;"><strong>Total: $${order.total.toFixed(2)}</strong></p>
+                                  </div>
+                                  
+                                  <div style="margin-top: 24px; text-align: center;">
+                                    <button onclick="const modal = this.closest(&quot;div[style*='max-width']&quot;); if (modal && modal.parentElement) { modal.parentElement.remove(); }" style="
+                                      padding: 14px 32px;
+                                      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                                      color: white;
+                                      border: none;
+                                      border-radius: 12px;
+                                      cursor: pointer;
+                                      font-size: 16px;
+                                      font-weight: 600;
+                                      box-shadow: 0 4px 14px rgba(56, 239, 125, 0.3);
+                                    ">Cerrar</button>
+                                  </div>
+                                </div>
+                              `;
+                              
+                              document.body.appendChild(modal);
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 4px 14px rgba(33, 150, 243, 0.3)';
+                            }}
                             style={{
-                              padding: '10px 16px',
-                              backgroundColor: '#2196F3',
+                              padding: '16px 24px',
+                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                               color: 'white',
                               border: 'none',
-                              borderRadius: '4px',
+                              borderRadius: '16px',
                               cursor: 'pointer',
-                              width: '100%'
+                              width: '100%',
+                              fontSize: '16px',
+                              fontWeight: '700',
+                              boxShadow: '0 4px 14px rgba(33, 150, 243, 0.3)',
+                              transition: 'all 0.3s ease',
+                              position: 'relative',
+                              overflow: 'hidden'
                             }}
                           >
-                            Ver Detalles del Pedido
+                            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.3</span>
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '20px' }}>📋</span>
+                              <span>Ver Detalles del Pedido</span>
+                            </span>
                           </button>
                         </div>
                       )}
                       
+                      {/* Botón 2: Llegué al restaurante - Gradiente Azul */}
                       {order.status === OrderStatus.ON_THE_WAY_TO_STORE && (
                         <button
                           onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ARRIVED_AT_STORE)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(33, 150, 243, 0.3)';
+                          }}
                           style={{
-                            padding: '10px 16px',
-                            backgroundColor: '#FF9800',
+                            padding: '16px 24px',
+                            background: 'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '4px',
+                            borderRadius: '16px',
                             cursor: 'pointer',
-                            width: '100%'
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            boxShadow: '0 4px 14px rgba(33, 150, 243, 0.3)',
+                            transition: 'all 0.3s ease',
+                            position: 'relative',
+                            overflow: 'hidden'
                           }}
                         >
-                          2. Llegué al restaurante
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.4</span>
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '20px' }}>🏪</span>
+                            <span>2. Llegué al restaurante</span>
+                          </span>
                         </button>
                       )}
                       
+                      {/* Botón 3: Repartidor con alimentos en mochila - Gradiente Violeta */}
                       {order.status === OrderStatus.ARRIVED_AT_STORE && (
                         <button
                           onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.PICKING_UP_ORDER)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(156, 39, 176, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(156, 39, 176, 0.3)';
+                          }}
                           style={{
-                            padding: '10px 16px',
-                            backgroundColor: '#2196F3',
+                            padding: '16px 24px',
+                            background: 'linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '4px',
+                            borderRadius: '16px',
                             cursor: 'pointer',
-                            width: '100%'
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            boxShadow: '0 4px 14px rgba(156, 39, 176, 0.3)',
+                            transition: 'all 0.3s ease',
+                            position: 'relative',
+                            overflow: 'hidden'
                           }}
                         >
-                          3. Repartidor con alimentos en mochila
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.5</span>
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '20px' }}>🎒</span>
+                            <span>3. Repartidor con alimentos en mochila</span>
+                          </span>
                         </button>
                       )}
                       
+                      {/* Botón 4: En camino al cliente - Gradiente Cian */}
                       {order.status === OrderStatus.PICKING_UP_ORDER && (
                         <button
                           onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_CUSTOMER)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 198, 255, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(0, 198, 255, 0.3)';
+                          }}
                           style={{
-                            padding: '10px 16px',
-                            backgroundColor: '#2196F3',
+                            padding: '16px 24px',
+                            background: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '4px',
+                            borderRadius: '16px',
                             cursor: 'pointer',
-                            width: '100%'
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            boxShadow: '0 4px 14px rgba(0, 198, 255, 0.3)',
+                            transition: 'all 0.3s ease',
+                            position: 'relative',
+                            overflow: 'hidden'
                           }}
                         >
-                          4. En camino al cliente
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.6</span>
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '20px' }}>🚴</span>
+                            <span>4. En camino al cliente</span>
+                          </span>
                         </button>
                       )}
                       
+                      {/* Botón 5: Pedido entregado - Gradiente Rojo */}
                       {order.status === OrderStatus.ON_THE_WAY_TO_CUSTOMER && (
                         <button
                           onClick={() => handleDeliveredWithCode(order.id)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(244, 67, 54, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(244, 67, 54, 0.3)';
+                          }}
                           style={{
-                            padding: '10px 16px',
-                            backgroundColor: '#f44336',
+                            padding: '16px 24px',
+                            background: 'linear-gradient(135deg, #cb2d3e 0%, #ef473a 100%)',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '4px',
+                            borderRadius: '16px',
                             cursor: 'pointer',
-                            width: '100%'
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            boxShadow: '0 4px 14px rgba(244, 67, 54, 0.3)',
+                            transition: 'all 0.3s ease',
+                            position: 'relative',
+                            overflow: 'hidden'
                           }}
                         >
-                          5. Pedido entregado
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.7</span>
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '20px' }}>✅</span>
+                            <span>5. Pedido entregado</span>
+                          </span>
                         </button>
                       )}
                       
+                      {/* Estado final: Pedido entregado - Badge elegante */}
                       {order.status === OrderStatus.DELIVERED && (
                         <div style={{
-                          padding: '10px 16px',
-                          backgroundColor: '#e8f5e9',
-                          color: '#2e7d32',
-                          border: '1px solid #c8e6c9',
-                          borderRadius: '4px',
-                          textAlign: 'center'
+                          padding: '18px 24px',
+                          background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                          color: 'white',
+                          borderRadius: '16px',
+                          textAlign: 'center',
+                          fontWeight: '700',
+                          fontSize: '16px',
+                          boxShadow: '0 4px 14px rgba(56, 239, 125, 0.3)',
+                          animation: 'slideUp 0.3s ease'
                         }}>
-                          Pedido entregado
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '24px' }}>🎉</span>
+                            <span>¡Pedido Entregado Exitosamente!</span>
+                          </span>
                         </div>
                       )}
                     </div>
@@ -784,17 +1183,17 @@ Ganancia: $${order.deliveryCost.toFixed(2)}`)}
                       </span>
                     </div>
                     
-                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Restaurante:</strong> {order.restaurantName}</p>
-                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Cliente:</strong> {order.customer.name}</p>
-                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Ganancia:</strong> ${order.deliveryCost.toFixed(2)}</p>
-                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Fecha:</strong> {new Date(order.deliveredAt || order.createdAt).toLocaleString()}</p>
+                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong>Restaurante:</strong> {order.restaurantName}</p>
+                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong>Cliente:</strong> {order.customer.name}</p>
+                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong>Ganancia:</strong> ${order.deliveryCost.toFixed(2)}</p>
+                    <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong>Fecha:</strong> {new Date(order.deliveredAt || order.createdAt).toLocaleString()}</p>
                     
                     {/* Mostrar productos */}
                     <div style={{ marginTop: '8px' }}>
-                      <strong style={{ fontSize: '14px', color: '#333' }}>Productos:</strong>
+                      <strong style={{ fontSize: '14px', color: '#FFF' }}>Productos:</strong>
                       <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
                         {order.items.map((item, index) => (
-                          <li key={index} style={{ fontSize: '13px', color: '#333' }}>
+                          <li key={index} style={{ fontSize: '13px', color: '#FFF' }}>
                             {item.name} x{item.quantity} (${(item.price * item.quantity).toFixed(2)})
                           </li>
                         ))}
@@ -929,21 +1328,6 @@ Ganancia: $${order.deliveryCost.toFixed(2)}`)}
           <span style={{ fontSize: '12px', marginTop: '2px' }}>Inicio</span>
         </button>
         <button
-          onClick={() => navigate('/pedidos')}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            border: 'none',
-            backgroundColor: 'transparent',
-            cursor: 'pointer',
-            color: location.pathname === '/pedidos' ? '#2196F3' : '#666'
-          }}
-        >
-          <span style={{ fontSize: '20px' }}>📋</span>
-          <span style={{ fontSize: '12px', marginTop: '2px' }}>Pedidos</span>
-        </button>
-        <button
           onClick={() => navigate('/historial')}
           style={{
             display: 'flex',
@@ -995,21 +1379,6 @@ Ganancia: $${order.deliveryCost.toFixed(2)}`)}
             </span>
           )}
         </div>
-        <button
-          onClick={() => navigate('/perfil')}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            border: 'none',
-            backgroundColor: 'transparent',
-            cursor: 'pointer',
-            color: location.pathname === '/perfil' ? '#2196F3' : '#666'
-          }}
-        >
-          <span style={{ fontSize: '20px' }}>👤</span>
-          <span style={{ fontSize: '12px', marginTop: '2px' }}>Perfil</span>
-        </button>
       </div>
     </div>
   );

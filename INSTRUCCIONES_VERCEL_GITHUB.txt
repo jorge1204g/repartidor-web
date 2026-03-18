@@ -1,0 +1,49 @@
+# Guía para crear y desplegar una aplicación web con Vercel y GitHub
+
+## Requisitos previos:
+- Tener Node.js y npm instalados en tu sistema
+- Tener una cuenta en GitHub
+- Tener una cuenta en Vercel
+- Tener la CLI de Vercel instalada: `npm i -g vercel`
+
+## Pasos para crear y desplegar tu aplicación web:
+
+### 1. Preparar tu proyecto local
+- Asegúrate de tener tu código fuente listo en una carpeta
+- Inicializar un repositorio Git en tu proyecto:
+  `git init`
+  `git add .`
+  `git commit -m "Initial commit"`
+
+### 2. Conectar con GitHub
+- Crea un nuevo repositorio en GitHub
+- Vincula tu repositorio local con GitHub:
+  `git remote add origin <URL_DEL_REPOSITORIO_DE_GITHUB>`
+- Sube tu código:
+  `git push -u origin main` (o `master`)
+
+### 3. Desplegar con Vercel
+- Navega a la carpeta de tu proyecto en la terminal
+- Ejecuta el comando:
+  `vercel`
+- Sigue las instrucciones para:
+  - Iniciar sesión o registrarte en Vercel
+  - Confirmar el directorio del proyecto
+  - Confirmar los ajustes de compilación
+  - Confirmar las variables de entorno si las tienes
+
+### 4. Desplegar a producción
+- Para hacer un despliegue a producción (dominio limpio):
+  `vercel --prod`
+- Tu aplicación estará disponible en: `<nombre-de-proyecto>.vercel.app`
+
+### 5. Conectar con GitHub (opcional pero recomendado)
+- En el panel de control de Vercel, puedes vincular tu cuenta de GitHub
+- Esto permite despliegues automáticos cada vez que hagas push a tu repositorio
+- Puedes elegir qué rama disparará los despliegues
+
+## Consejos útiles:
+- Usa un archivo `.gitignore` para excluir archivos temporales o sensibles
+- Configura variables de entorno en Vercel para datos sensibles
+- Utiliza ramas diferentes para desarrollo y producción
+- Puedes personalizar el nombre de dominio en la configuración de Vercel

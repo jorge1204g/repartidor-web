@@ -20,12 +20,22 @@ class OrderRepository {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val orders = snapshot.children.mapNotNull { 
                     it.getValue(Order::class.java) 
-                }.filter { 
-                    (it.assignedToDeliveryId == deliveryId && 
-                     it.status in listOf("ASSIGNED", "ACCEPTED", "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER", "DELIVERED")) ||
-                    (it.status == "MANUAL_ASSIGNED" && 
-                     (it.assignedToDeliveryId.isEmpty() || it.assignedToDeliveryId == deliveryId) &&
-                     (it.candidateDeliveryIds.isEmpty() || deliveryId in it.candidateDeliveryIds))
+                }.filter { order ->
+                    // Pedidos asignados al repartidor (incluyendo entregados)
+                    val isAssignedToDelivery = order.assignedToDeliveryId == deliveryId && 
+                        order.status in listOf("ASSIGNED", "ACCEPTED", "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER", "DELIVERED")
+                    
+                    // Pedidos manuales disponibles para todos los repartidores
+                    val isManualAvailable = order.status == "MANUAL_ASSIGNED" && 
+                        order.assignedToDeliveryId.isEmpty() &&
+                        (order.candidateDeliveryIds.isEmpty() || deliveryId in order.candidateDeliveryIds)
+                    
+                    // Pedidos del restaurante disponibles para todos los repartidores
+                    val isRestaurantAvailable = order.status in listOf("PENDING", "ASSIGNED") &&
+                        order.assignedToDeliveryId.isEmpty() &&
+                        (order.candidateDeliveryIds.isEmpty() || deliveryId in order.candidateDeliveryIds)
+                    
+                    isAssignedToDelivery || isManualAvailable || isRestaurantAvailable
                 }
                 trySend(orders)
             }

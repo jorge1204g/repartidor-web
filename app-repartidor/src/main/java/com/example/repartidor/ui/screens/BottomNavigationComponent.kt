@@ -19,7 +19,7 @@ fun BottomNavigationComponent(
     NavigationBar(
         modifier = Modifier
             .fillMaxWidth()
-            .height(90.dp),  // Aumenté la altura de 80dp a 90dp
+            .height(90.dp),
         containerColor = md_theme_dark_surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp
@@ -49,26 +49,6 @@ fun BottomNavigationComponent(
             onClick = { onTabSelected(1) },
             icon = {
                 Icon(
-                    imageVector = Icons.Default.List,
-                    contentDescription = "Pedidos"
-                )
-            },
-            label = { Text("Pedidos") },
-            alwaysShowLabel = true,
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = md_theme_dark_primary,
-                selectedTextColor = md_theme_dark_primary,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                indicatorColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        )
-        
-        NavigationBarItem(
-            selected = selectedTab == 2,
-            onClick = { onTabSelected(2) },
-            icon = {
-                Icon(
                     imageVector = Icons.Default.History,
                     contentDescription = "Historial"
                 )
@@ -85,8 +65,8 @@ fun BottomNavigationComponent(
         )
         
         NavigationBarItem(
-            selected = selectedTab == 3,
-            onClick = { onTabSelected(3) },
+            selected = selectedTab == 2,
+            onClick = { onTabSelected(2) },
             icon = {
                 Icon(
                     imageVector = Icons.Default.Mail,
@@ -94,26 +74,6 @@ fun BottomNavigationComponent(
                 )
             },
             label = { Text("Mensajes") },
-            alwaysShowLabel = true,
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = md_theme_dark_primary,
-                selectedTextColor = md_theme_dark_primary,
-                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                indicatorColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        )
-        
-        NavigationBarItem(
-            selected = selectedTab == 4,
-            onClick = { onTabSelected(4) },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Perfil"
-                )
-            },
-            label = { Text("Perfil") },
             alwaysShowLabel = true,
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = md_theme_dark_primary,

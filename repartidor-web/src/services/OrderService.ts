@@ -83,9 +83,9 @@ class OrderService {
         }
       }
 
-      // Filtrar solo pedidos activos (no completados) excepto si están asignados a este repartidor
+      // Filtrar solo pedidos activos (no mostrar cancelados ni entregados, incluso si están asignados a este repartidor)
       return ordersArray.filter(order => 
-        order.status !== OrderStatus.DELIVERED || order.assignedToDeliveryId === deliveryId
+        order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.CANCELLED
       ).sort((a, b) => b.createdAt - a.createdAt); // Ordenar por fecha descendente
       
     } catch (error) {

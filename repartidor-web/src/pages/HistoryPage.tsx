@@ -328,17 +328,17 @@ const HistoryPage: React.FC = () => {
                     </span>
                   </div>
                   
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Restaurante:</strong> {order.restaurantName}</p>
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Cliente:</strong> {order.customer.name}</p>
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Ganancia:</strong> ${order.deliveryCost.toFixed(2)}</p>
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#333' }}><strong>Fecha:</strong> {new Date(order.deliveredAt || order.createdAt).toLocaleString()}</p>
+                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong>Restaurante:</strong> {order.restaurantName}</p>
+                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong>Cliente:</strong> {order.customer.name}</p>
+                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong>Ganancia:</strong> ${order.deliveryCost.toFixed(2)}</p>
+                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong>Fecha:</strong> {new Date(order.deliveredAt || order.createdAt).toLocaleString()}</p>
                   
                   {/* Mostrar productos */}
                   <div style={{ marginTop: '8px' }}>
-                    <strong style={{ fontSize: '14px', color: '#333' }}>Productos:</strong>
+                    <strong style={{ fontSize: '14px', color: '#FFF' }}>Productos:</strong>
                     <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
                       {order.items.map((item, index) => (
-                        <li key={index} style={{ fontSize: '13px', color: '#333' }}>
+                        <li key={index} style={{ fontSize: '13px', color: '#FFF' }}>
                           {item.name} x{item.quantity} (${(item.price * item.quantity).toFixed(2)})
                         </li>
                       ))}

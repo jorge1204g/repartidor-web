@@ -160,6 +160,7 @@ const Dashboard: React.FC = () => {
           <li><a href="/inicio" className="active">🏠 Inicio</a></li>
           <li><a href="/crear-pedido">➕ Crear Pedido</a></li>
           <li><a href="/historial-pedidos">📜 Historial</a></li>
+          <li><a href="/cargar-menu">📋 Cargar Menú</a></li>
         </ul>
       </nav>
 
@@ -265,6 +266,13 @@ const Dashboard: React.FC = () => {
               style={{ flex: '1', minWidth: '200px' }}
             >
               📜 Ver Historial Completo
+            </button>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => navigate('/cargar-menu')}
+              style={{ flex: '1', minWidth: '200px' }}
+            >
+              📋 Cargar Menú
             </button>
           </div>
         </div>

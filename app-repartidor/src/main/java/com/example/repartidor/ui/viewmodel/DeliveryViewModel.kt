@@ -613,7 +613,7 @@ class DeliveryViewModel : ViewModel() {
                         
                         // Detectar nuevos pedidos asignados
                         val newAssignedOrders = activeOrders.filter { order ->
-                            order.status in listOf("ASSIGNED", "MANUAL_ASSIGNED", "ACCEPTED") &&
+                            (order.status in listOf("ASSIGNED", "MANUAL_ASSIGNED", "ACCEPTED") || order.orderType == "MANUAL" || order.orderType == "RESTAURANT") &&
                             order.assignedToDeliveryId == deliveryId &&
                             previousOrders.none { it.id == order.id }
                         }
@@ -650,7 +650,7 @@ class DeliveryViewModel : ViewModel() {
                         
                         // Detectar nuevos pedidos asignados
                         val newAssignedOrders = activeOrders.filter { order ->
-                            order.status in listOf("ASSIGNED", "MANUAL_ASSIGNED", "ACCEPTED") &&
+                            (order.status in listOf("ASSIGNED", "MANUAL_ASSIGNED", "ACCEPTED") || order.orderType == "MANUAL" || order.orderType == "RESTAURANT") &&
                             order.assignedToDeliveryId == deliveryId &&
                             previousOrders.none { it.id == order.id }
                         }

@@ -7,9 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.aplicacionnuevaprueba1.ui.screens.AdminScreen
+import com.example.aplicacionnuevaprueba1.ui.screens.ClientLoginScreen
 import com.example.aplicacionnuevaprueba1.ui.theme.Aplicacionnuevaprueba1Theme
 import com.example.aplicacionnuevaprueba1.ui.viewmodel.AdminViewModel
 import com.example.aplicacionnuevaprueba1.utils.WhatsAppIntegration
@@ -28,10 +30,25 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val viewModel: AdminViewModel = viewModel()
-                    AdminScreen(viewModel)
+                    var isLoggedIn by remember { mutableStateOf(isClientLoggedIn()) }
+                    
+                    if (isLoggedIn) {
+                        val viewModel: AdminViewModel = viewModel()
+                        AdminScreen(viewModel)
+                    } else {
+                        ClientLoginScreen(
+                            onLoginSuccess = {
+                                isLoggedIn = true
+                            }
+                        )
+                    }
                 }
             }
         }
+    }
+    
+    private fun isClientLoggedIn(): Boolean {
+        val prefs = getSharedPreferences("client_prefs", MODE_PRIVATE)
+        return prefs.getBoolean("is_logged_in", false)
     }
 }

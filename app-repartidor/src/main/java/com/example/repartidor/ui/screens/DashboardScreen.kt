@@ -1,369 +1,30 @@
 package com.example.repartidor.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.repartidor.ui.theme.md_theme_dark_primary
-import com.example.repartidor.ui.theme.md_theme_dark_surface
-import com.example.repartidor.ui.theme.md_theme_dark_surfaceVariant
+import androidx.compose.ui.unit.sp
+import com.example.repartidor.data.model.Order
+import com.example.repartidor.ui.theme.*
 import com.example.repartidor.utils.translateOrderStatus
 
-// Clase de datos para vista previa de pedidos
-data class OrderPreview(
-    val id: String,
-    val restaurantName: String,
-    val earning: Double,
-    val products: List<String>,
-    val pickupUrl: String,
-    val deliveryAddress: String
-)
-
-
-
-// Función para comprobar si una marca de tiempo corresponde a hoy
-fun isToday(timestamp: Long): Boolean {
-    val today = java.util.Calendar.getInstance()
-    today.timeInMillis = System.currentTimeMillis()
-    
-    val orderDay = java.util.Calendar.getInstance()
-    orderDay.timeInMillis = timestamp
-    
-    return orderDay.get(java.util.Calendar.YEAR) == today.get(java.util.Calendar.YEAR) &&
-           orderDay.get(java.util.Calendar.DAY_OF_YEAR) == today.get(java.util.Calendar.DAY_OF_YEAR)
-}
-
-// Función para comprobar si un pedido fue entregado hoy
-fun isOrderDeliveredToday(order: com.example.repartidor.data.model.Order): Boolean {
-    return order.deliveredAt != null && isToday(order.deliveredAt)
-}
-
-@Composable
-fun ReceivedOrdersSection(
-    viewModel: com.example.repartidor.ui.viewmodel.DeliveryViewModel,
-    onOrderDetailClick: (com.example.repartidor.data.model.Order) -> Unit = {}
-) {
-    val orders by viewModel.orders.collectAsState()
-    
-    // Filtrar pedidos que están pendientes o asignados manualmente
-    val receivedOrders = orders.filter { order ->
-        order.status in listOf("PENDING", "ASSIGNED", "MANUAL_ASSIGNED") &&
-        order.assignedToDeliveryId.isEmpty()
-    }
-    
-    if (receivedOrders.isNotEmpty()) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Nuevos Pedidos Recibidos",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
-            receivedOrders.forEach { order ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = order.restaurantName,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Ganancia: \$${String.format("%.2f", order.deliveryCost)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Green // Verde Neón para ganancias
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Text(
-                            text = "Productos:",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        
-                        order.items.forEach { item ->
-                            Text(
-                                text = "• ${item.name} x${item.quantity} (\$${String.format("%.2f", item.unitPrice)} c/u)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        // Solo mostrar información sensible después de aceptar el pedido
-                        Text(
-                            text = "Toca \"Aceptar Pedido\" para ver información de contacto y dirección",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                        )
-                        
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        Button(
-                            onClick = { 
-                                // Aceptar el pedido y luego permitir ver detalles
-                                viewModel.acceptOrder(order.id)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = md_theme_dark_primary
-                            )
-                        ) {
-                            Text(
-                                text = "Aceptar Pedido",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    // Mostrar pedidos activos con opciones de seguimiento
-    val activeOrders = orders.filter { order ->
-        order.status in listOf("ACCEPTED", "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER")
-    }
-    
-    if (activeOrders.isNotEmpty()) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Pedidos en Proceso",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
-            activeOrders.forEach { order ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onOrderDetailClick(order) },
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Pedido #${order.orderId.ifEmpty { order.id }}",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        
-                        Text(
-                            text = "Restaurante: ${order.restaurantName}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        
-                        Text(
-                            text = "Estado: ${translateOrderStatus(order.status)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        // Botones de acción según el estado del pedido
-                        when (order.status) {
-                            "ACCEPTED" -> {
-                                Button(
-                                    onClick = { viewModel.goToStore(order.id) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = com.example.repartidor.ui.theme.SecondaryGreen
-                                    )
-                                ) {
-                                    Text(
-                                        text = "1. En camino al restaurante",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                            "ON_THE_WAY_TO_STORE" -> {
-                                Button(
-                                    onClick = { viewModel.arrivedAtStore(order.id) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = com.example.repartidor.ui.theme.WarningOrange
-                                    )
-                                ) {
-                                    Text(
-                                        text = "2. Llegué al restaurante",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                            "ARRIVED_AT_STORE" -> {
-                                Button(
-                                    onClick = { viewModel.pickingUpOrder(order.id) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = com.example.repartidor.ui.theme.AccentBlue
-                                    )
-                                ) {
-                                    Text(
-                                        text = "3. Repartidor con alimentos en mochila",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                            "PICKING_UP_ORDER" -> {
-                                Button(
-                                    onClick = { viewModel.goToCustomer(order.id) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = com.example.repartidor.ui.theme.LightBlue
-                                    )
-                                ) {
-                                    Text(
-                                        text = "4. En camino al cliente",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                            "ON_THE_WAY_TO_CUSTOMER" -> {
-                                // Botón para entregar pedido con código de confirmación
-                                var showCodeDialog by remember { mutableStateOf(false) }
-                                var enteredCode by remember { mutableStateOf("") }
-                                var codeError by remember { mutableStateOf("") }
-                                
-                                Button(
-                                    onClick = { showCodeDialog = true },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = com.example.repartidor.ui.theme.DangerRed
-                                    )
-                                ) {
-                                    Text(
-                                        text = "5. Pedido entregado",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                                
-                                // Diálogo para ingresar código del cliente
-                                if (showCodeDialog) {
-                                    AlertDialog(
-                                        onDismissRequest = { 
-                                            showCodeDialog = false
-                                            codeError = ""
-                                            enteredCode = ""
-                                        },
-                                        title = { Text("Código de Confirmación") },
-                                        text = {
-                                            Column {
-                                                Text("Por favor ingrese el código del cliente para confirmar la entrega:")
-                                                Spacer(modifier = Modifier.height(16.dp))
-                                                OutlinedTextField(
-                                                    value = enteredCode,
-                                                    onValueChange = { newValue ->
-                                                        // Validar que solo contenga números y tenga máximo 4 dígitos
-                                                        if (newValue.length <= 4 && newValue.all { char -> char.isDigit() }) {
-                                                            enteredCode = newValue
-                                                        }
-                                                    },
-                                                    label = { Text("Código del cliente") },
-                                                    placeholder = { Text("Ingrese 4 dígitos") },
-                                                    isError = codeError.isNotEmpty(),
-                                                    supportingText = {
-                                                        if (codeError.isNotEmpty()) {
-                                                            Text(
-                                                                text = codeError,
-                                                                color = MaterialTheme.colorScheme.error
-                                                            )
-                                                        }
-                                                    }
-                                                )
-                                            }
-                                        },
-                                        confirmButton = {
-                                            Button(
-                                                onClick = {
-                                                    if (enteredCode == order.customerCode) {
-                                                        // Código correcto, completar la entrega
-                                                        viewModel.deliveredOrder(order.id)
-                                                        showCodeDialog = false
-                                                        codeError = ""
-                                                        enteredCode = ""
-                                                    } else {
-                                                        // Código incorrecto
-                                                        codeError = "Código incorrecto. Inténtelo de nuevo."
-                                                    }
-                                                }
-                                            ) {
-                                                Text("Confirmar")
-                                            }
-                                        },
-                                        dismissButton = {
-                                            Button(
-                                                onClick = { 
-                                                    showCodeDialog = false
-                                                    codeError = ""
-                                                    enteredCode = ""
-                                                }
-                                            ) {
-                                                Text("Cancelar")
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     dailyEarnings: Double,
@@ -374,432 +35,789 @@ fun DashboardScreen(
     onSettingsClick: () -> Unit,
     onSupportClick: () -> Unit,
     viewModel: com.example.repartidor.ui.viewmodel.DeliveryViewModel,
-    onOrderDetailClick: (com.example.repartidor.data.model.Order) -> Unit = {}
+    onOrderDetailClick: (Order) -> Unit = {}
 ) {
-    val context = LocalContext.current
+    val orders by viewModel.orders.collectAsState()
+    val deliveryPerson by viewModel.deliveryPerson.collectAsState()
+    var activeTab by remember { mutableStateOf("active") }
     
-    Column(
+    // Filtrar pedidos activos y asignados manualmente/por restaurante
+    val activeOrders = orders.filter { order ->
+        order.status != "DELIVERED"
+    }
+    val assignedOrders = orders.filter { order ->
+        order.orderType == "MANUAL" || order.orderType == "RESTAURANT"
+    }
+    
+    // Determinar el texto del botón según el tipo de asignación
+    val hasManualAssigned = assignedOrders.any { it.orderType == "MANUAL" }
+    val hasRestaurantAssigned = assignedOrders.any { it.orderType == "RESTAURANT" }
+    
+    val assignedButtonText = when {
+        hasManualAssigned && hasRestaurantAssigned -> "📋 Ambos (${assignedOrders.size})"
+        hasManualAssigned -> "👤 Manual (${assignedOrders.size})"
+        hasRestaurantAssigned -> "🏪 Restaurante (${assignedOrders.size})"
+        else -> "📋 Asignados (${assignedOrders.size})"
+    }
+    
+    // Fondo oscuro profesional usando el color del tema existente
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .background(md_theme_dark_background),  // #121418 - Gris casi negro
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Header with user info and switch
-        val deliveryPerson by viewModel.deliveryPerson.collectAsState()
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // User info section
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Placeholder for CircleImageView
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(md_theme_dark_surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Foto del repartidor",
-                        modifier = Modifier
-                            .size(36.dp),
-                        tint = md_theme_dark_primary
-                    )
-                }
-                
-                Text(
-                    text = "¡Hola, ${deliveryPerson?.name ?: "Repartidor"}!",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            
-            // Online toggle switch
-            Switch(
-                checked = deliveryPerson?.isOnline ?: true,
-                onCheckedChange = { isChecked ->
-                    deliveryPerson?.let { person ->
-                        viewModel.updatePresence(isChecked, person.isActive)
-                    }
-                },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = md_theme_dark_primary,
-                    checkedTrackColor = md_theme_dark_primary.copy(alpha = 0.5f),
-                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            )
-        }
-        
-        // Última entrega
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start
-        ) {
-            Text(
-                text = "Última entrega: hace 15 min",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        
-        // Dashboard Cards Section
-        Text(
-            text = "Ganancias Hoy",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        
-        // Horizontal layout for earnings cards
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Daily Earnings Card
+        // Header profesional con saludo y estado
+        item {
             Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(120.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = md_theme_dark_surfaceVariant
-                ),
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = md_theme_dark_surfaceVariant),  // #1E2228 - Gris oscuro azulado
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
-                Column(
+                Row(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.SpaceEvenly,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Today,
-                        contentDescription = "Ganancias Diarias",
-                        tint = Color.Green // Verde Neón para ganancias
-                    )
-                    Text(
-                        text = "\$${String.format("%.2f", dailyEarnings)}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White // Blanco Puro para montos de dinero
-                    )
-                    Text(
-                        text = "Hoy",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color(0xFFD0D0D0) // Gris más claro
-                    )
-                }
-            }
-            
-            // Weekly Earnings Card
-            Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(120.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = md_theme_dark_surfaceVariant
-                ),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.SpaceEvenly,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DateRange,
-                        contentDescription = "Ganancias Semanales",
-                        tint = Color.Green // Verde Neón para ganancias
-                    )
-                    Text(
-                        text = "\$${String.format("%.2f", weeklyEarnings)}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White // Blanco Puro para montos de dinero
-                    )
-                    Text(
-                        text = "Esta semana",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color(0xFFD0D0D0) // Gris más claro
-                    )
-                }
-            }
-        }
-        
-        // Monthly Earnings Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = md_theme_dark_surfaceVariant
-            ),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Ganancias Mensuales",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Yellow // Amarillo Brillante para ganancias mensuales
-                    )
-                    Text(
-                        text = "\$${String.format("%.2f", monthlyEarnings)}",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White // Blanco Puro para montos de dinero
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Default.BarChart,
-                    contentDescription = "Gráfico de ganancias",
-                    tint = Color.Yellow // Amarillo Brillante para ganancias mensuales
-                )
-            }
-        }
-        
-        // Nuevos pedidos recibidos
-        val allOrders by viewModel.orders.collectAsState()
-        
-        ReceivedOrdersSection(
-            viewModel = viewModel,
-            onOrderDetailClick = onOrderDetailClick
-        )
-        
-        // Map Card
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = md_theme_dark_surfaceVariant
-            ),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                // Placeholder for map
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF2A2F3D)) // Dark blue-gray for map placeholder
-                )
-                
-                // Radar effect in center
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color.Black.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationSearching,
-                        contentDescription = "Radar",
-                        modifier = Modifier
-                            .size(40.dp),
-                        tint = md_theme_dark_primary
-                    )
-                }
-                
-                // Floating action button for map
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.BottomEnd
-                ) {
-                    FloatingActionButton(
-                        onClick = onMapClick,
-                        modifier = Modifier
-                            .padding(16.dp),
-                        containerColor = md_theme_dark_primary,
-                        contentColor = Color.White
+                    Column(
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Map,
-                            contentDescription = "Abrir Mapa"
+                        Text(
+                            text = "¡Hola, ${deliveryPerson?.name ?: "Repartidor"}!",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = md_theme_dark_onBackground  // #E1E2E6 - Blanco grisáceo
+                        )
+                        Row(
+                            modifier = Modifier.padding(top = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // ID Badge
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = md_theme_dark_outline,  // #8D9197 - Gris medio
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "ID: ${deliveryPerson?.id ?: "N/A"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = md_theme_dark_onSurfaceVariant  // #C3C7CD - Gris claro
+                                )
+                            }
+                            // Estado Online/Offline
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(if (deliveryPerson?.isOnline == true) md_theme_dark_primary else WarningOrange)  // Verde o Naranja de alerta
+                                )
+                                Text(
+                                    text = if (deliveryPerson?.isOnline == true) "Disponible" else "No disponible",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (deliveryPerson?.isOnline == true) md_theme_dark_primary else WarningOrange,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Switch de estado - Diseño moderno
+                    Switch(
+                        checked = deliveryPerson?.isOnline ?: false,
+                        onCheckedChange = { isChecked ->
+                            deliveryPerson?.let { person ->
+                                viewModel.updatePresence(isChecked, person.isActive)
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = md_theme_dark_primary,  // Verde brillante
+                            checkedTrackColor = md_theme_dark_primary.copy(alpha = 0.5f),
+                            uncheckedThumbColor = md_theme_dark_outline,  // Gris medio
+                            uncheckedTrackColor = md_theme_dark_outline.copy(alpha = 0.3f)
+                        ),
+                        modifier = Modifier.padding(start = 12.dp)
+                    )
+                }
+            }
+        }
+        
+        // Tarjetas de ganancias - Diseño profesional de 3 tarjetas
+        item {
+            // Fila superior: Hoy y Semana
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Ganancias Hoy
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = md_theme_dark_surfaceVariant),  // #1E2228
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Today,
+                                contentDescription = null,
+                                tint = md_theme_dark_primary,  // Verde brillante #34C759
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Hoy",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = md_theme_dark_onSurfaceVariant  // #C3C7CD
+                        )
+                        Text(
+                            text = "$${String.format("%.2f", dailyEarnings)}",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = md_theme_dark_onBackground  // #E1E2E6
+                        )
+                        Text(
+                            text = "${orders.count { it.status != "DELIVERED" }} pedidos",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = md_theme_dark_outline  // #8D9197
+                        )
+                    }
+                }
+                
+                // Ganancias Semana
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = md_theme_dark_surfaceVariant),  // #1E2228
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        horizontalAlignment = Alignment.Start
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BarChart,
+                                contentDescription = null,
+                                tint = AccentBlue,  // Azul #2196F3
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Semana",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = md_theme_dark_onSurfaceVariant
+                        )
+                        Text(
+                            text = "$${String.format("%.2f", weeklyEarnings)}",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = md_theme_dark_onBackground
+                        )
+                        Text(
+                            text = "ganados",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = md_theme_dark_outline
+                        )
+                    }
+                }
+            }
+            
+            // Fila inferior: Mes (más grande)
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = md_theme_dark_surfaceVariant),  // #1E2228
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.TrendingUp,
+                                contentDescription = null,
+                                tint = WarningOrange,  // Naranja #FF9800
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Text(
+                                text = "Este Mes",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = md_theme_dark_onBackground
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "$${String.format("%.2f", monthlyEarnings)}",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = md_theme_dark_onBackground
+                        )
+                        Text(
+                            text = "ganados en total",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = md_theme_dark_onSurfaceVariant
+                        )
+                    }
+                    // Gráfico decorativo
+                    Icon(
+                        imageVector = Icons.Default.PieChart,
+                        contentDescription = null,
+                        tint = WarningOrange.copy(alpha = 0.3f),  // Naranja suave
+                        modifier = Modifier.size(56.dp)
+                    )
+                }
+            }
+        }
+        
+        // Pestañas de pedidos - Diseño moderno
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = { activeTab = "active" },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (activeTab == "active") md_theme_dark_primaryContainer else md_theme_dark_surfaceVariant,  // Verde oscuro o Gris azulado
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Text(
+                        text = "Activos (${activeOrders.size})",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
+                
+                Button(
+                    onClick = { activeTab = "assigned" },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (activeTab == "assigned") md_theme_dark_tertiaryContainer else md_theme_dark_surfaceVariant,  // Azul oscuro o Gris azulado
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Text(
+                        text = assignedButtonText,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
+            }
+        }
+        
+        // Lista de pedidos activos o asignados
+        items(if (activeTab == "active") activeOrders else assignedOrders) { order ->
+            OrderCard(
+                order = order,
+                onOrderClick = onOrderDetailClick,
+                viewModel = viewModel
+            )
+        }
+        
+        // Mensaje cuando no hay pedidos - Diseño minimalista
+        if ((activeTab == "active" && activeOrders.isEmpty()) || (activeTab == "assigned" && assignedOrders.isEmpty())) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 40.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = md_theme_dark_surfaceVariant),  // #1E2228
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Ilustración minimalista (emoji grande)
+                        Text(
+                            text = "🛵",
+                            fontSize = 72.sp
+                        )
+                        Text(
+                            text = if (activeTab == "active") "¡No tienes pedidos activos!" else "No hay pedidos asignados",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = md_theme_dark_onBackground  // #E1E2E6
+                        )
+                        Text(
+                            text = if (activeTab == "active") 
+                                "Aprovecha para descansar mientras llegan nuevos pedidos" 
+                             else 
+                                "Los pedidos asignados manualmente o por el restaurante aparecerán aquí",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = md_theme_dark_onSurfaceVariant,  // #C3C7CD
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                     }
                 }
             }
         }
-        
-        // Botón de Iniciar Turno si no hay pedidos activos
-        val activeOrders = allOrders.filter { order ->
-            order.status in listOf("ACCEPTED", "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER")
-        }
-        
-        if (activeOrders.isEmpty()) {
-            Button(
-                onClick = { /* Acción para iniciar turno */ },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = md_theme_dark_primary
-                ),
-                shape = RoundedCornerShape(16.dp)
+    }
+}
+
+@Composable
+fun OrderCard(
+    order: Order,
+    onOrderClick: (Order) -> Unit,
+    viewModel: com.example.repartidor.ui.viewmodel.DeliveryViewModel
+) {
+    val context = LocalContext.current
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onOrderClick(order) },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2638)),  // Azul oscuro profundo
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Título principal
+            Text(
+                text = "🔔 Nuevos pedidos recibidos",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF4CAF50)  // Verde brillante
+            )
+            
+            // Información del cliente y restaurante
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "¡Empezar a trabajar!",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    text = "👤 Cliente: ${order.customer.name}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF4CAF50)
                 )
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Iniciar Turno",
-                    modifier = Modifier.padding(start = 8.dp),
-                    tint = Color.White
+                Text(
+                    text = "📞 Teléfono: ${order.customer.phone}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF9CA3AF)
+                )
+                Text(
+                    text = "🏪 Restaurante: ${order.restaurantName}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF4CAF50)
                 )
             }
-        }
-        
-        // Quick Action Buttons (convertidos a iconos)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            // Wallet Button
-            Box(
-                modifier = Modifier
-                    .clickable { onWalletClick() }
-                    .padding(8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+            
+            // Botones de acción rápida - Solo mostrar si el pedido ya fue aceptado
+            if (order.status != "MANUAL_ASSIGNED" || order.assignedToDeliveryId.isNotEmpty()) {
+                // Botón: Llamar al cliente
+                Button(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${order.customer.phone}"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),  // Azul
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.AccountBalanceWallet,
-                        contentDescription = "Billetera",
-                        tint = md_theme_dark_primary,
-                        modifier = Modifier.size(32.dp)
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Billetera",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(top = 4.dp)
+                        text = "📞 Llamar al cliente",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color.White
+                    )
+                }
+                
+                // Botón: Copiar teléfono
+                Button(
+                    onClick = {
+                        val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboardManager.setPrimaryClip(android.content.ClipData.newPlainText("Teléfono cliente", order.customer.phone))
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0)),  // Morado
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "📋 Copiar número de teléfono",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color.White
+                    )
+                }
+                
+                // Botón: Dirección del cliente
+                Button(
+                    onClick = {
+                        // Abrir Google Maps con la dirección del cliente
+                        val address = Uri.encode(order.deliveryAddress)
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=$address"))
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),  // Verde
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "📍 Dirección del cliente",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color.White
+                    )
+                }
+                
+                // Botón: Dirección del restaurante
+                Button(
+                    onClick = {
+                        // Abrir Google Maps con la dirección del restaurante
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(order.restaurantName)}"))
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),  // Naranja
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Store,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "🏪 Dirección del restaurante",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color.White
                     )
                 }
             }
             
-            // Settings Button
-            Box(
-                modifier = Modifier
-                    .clickable { onSettingsClick() }
-                    .padding(8.dp),
-                contentAlignment = Alignment.Center
-            ) {
+            // Productos
+            if (order.items.isNotEmpty()) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "📦 Productos:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF4CAF50)  // Verde
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    order.items.forEach { item ->
+                        Text(
+                            text = "• ${item.name} x${item.quantity}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF4CAF50),  // Verde
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+                }
+            }
+            
+            // Mensaje informativo
+            if (order.status == "MANUAL_ASSIGNED" && order.assignedToDeliveryId.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f)),  // Verde transparente
+                    border = BorderStroke(1.dp, Color(0xFF4CAF50).copy(alpha = 0.3f)),  // Verde suave
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "ℹ️", fontSize = 16.sp)
+                        Text(
+                            text = "Toca \"Aceptar pedido\" para ver más información de contacto y dirección",
+                            color = Color(0xFF4CAF50),  // Verde
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+            
+            // Botón de aceptar
+            if (order.status == "MANUAL_ASSIGNED" && order.assignedToDeliveryId.isEmpty()) {
+                Button(
+                    onClick = {
+                        viewModel.acceptOrder(order.id)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),  // Verde
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Ajustes",
-                        tint = md_theme_dark_primary,
-                        modifier = Modifier.size(32.dp)
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
                     )
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Ajustes",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(top = 4.dp)
+                        text = "Aceptar pedido",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
                     )
                 }
             }
             
-            // Map Button
-            Box(
-                modifier = Modifier
-                    .clickable { onMapClick() }
-                    .padding(8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+            // Botones del flujo de entrega
+            if (order.status == "ACCEPTED") {
+                // Botón: En camino al restaurante
+                Button(
+                    onClick = {
+                        viewModel.goToStore(order.id)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),  // Azul
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Map,
-                        contentDescription = "Mapa",
-                        tint = md_theme_dark_primary,
-                        modifier = Modifier.size(32.dp)
+                        imageVector = Icons.Default.DirectionsBike,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
                     )
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Mapa",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(top = 4.dp)
+                        text = "#1 En camino al restaurante",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
                     )
                 }
             }
             
-            // Support Button
-            Box(
-                modifier = Modifier
-                    .clickable { onSupportClick() }
-                    .padding(8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+            if (order.status == "ON_THE_WAY_TO_STORE") {
+                // Botón: Llegué al restaurante
+                Button(
+                    onClick = {
+                        viewModel.arrivedAtStore(order.id)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),  // Naranja
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Help,
-                        contentDescription = "Soporte",
-                        tint = md_theme_dark_primary,
-                        modifier = Modifier.size(32.dp)
+                        imageVector = Icons.Default.Store,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
                     )
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Soporte",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(top = 4.dp)
+                        text = "#2 Llegué al restaurante",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
                     )
                 }
             }
-        }
-    }
-    
-    // Support FAB floating above bottom navigation
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.BottomEnd
-    ) {
-        FloatingActionButton(
-            onClick = onSupportClick,
-            modifier = Modifier
-                .padding(bottom = 80.dp, end = 16.dp), // Positioned above bottom nav
-            containerColor = md_theme_dark_primary,
-            contentColor = Color.White
-        ) {
-            Icon(
-                imageVector = Icons.Default.Message,
-                contentDescription = "Soporte"
-            )
+            
+            if (order.status == "ARRIVED_AT_STORE") {
+                // Botón: Recogiendo pedido
+                Button(
+                    onClick = {
+                        viewModel.pickingUpOrder(order.id)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0)),  // Morado
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Restaurant,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "#3 Repartidor con alimentos en mochila",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = Color.White
+                    )
+                }
+            }
+            
+            if (order.status == "PICKING_UP_ORDER") {
+                // Botón: En camino al cliente
+                Button(
+                    onClick = {
+                        viewModel.goToCustomer(order.id)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BCD4)),  // Cian
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DirectionsCar,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "#4 En camino al cliente",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                }
+            }
+            
+            if (order.status == "ON_THE_WAY_TO_CUSTOMER") {
+                // Botón: Pedido entregado
+                Button(
+                    onClick = {
+                        viewModel.deliveredOrder(order.id)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),  // Verde
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "#5 Pedido entregado",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+                }
+                
+                // Código de confirmación
+                if (order.customerCode.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF4CAF50).copy(alpha = 0.2f)),
+                        border = BorderStroke(2.dp, Color(0xFF4CAF50)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "✅ Código de Confirmación",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF4CAF50)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = order.customerCode,
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF4CAF50)
+                            )
+                            Text(
+                                text = "Muestra este código al cliente",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF4CAF50)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
