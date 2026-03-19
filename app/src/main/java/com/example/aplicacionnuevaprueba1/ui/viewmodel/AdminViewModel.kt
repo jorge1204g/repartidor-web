@@ -88,8 +88,8 @@ class AdminViewModel : ViewModel() {
         
         // Verificar si aumentó el número total de pedidos
         if (currentOrderCount > lastOrderCount && applicationContext != null) {
-            // Buscar el pedido más reciente
-            val newestOrder = allOrders.maxByOrNull { it.createdAt ?: 0L }
+            // Buscar el pedido más reciente por orderId (último agregado)
+            val newestOrder = allOrders.maxByOrNull { it.orderId }
             
             // Solo reproducir sonido si es un pedido activo (no entregado/cancelado)
             if (newestOrder != null && 
@@ -98,7 +98,7 @@ class AdminViewModel : ViewModel() {
                 
                 println("🔔 ¡PEDIDO NUEVO DETECTADO! ID: ${newestOrder.orderId}, Status: ${newestOrder.status}")
                 println("   Cliente: ${newestOrder.customer.name}")
-                println("   Servicio: ${newestOrder.serviceType}")
+                println("   Restaurante: ${newestOrder.restaurantName}")
                 
                 // Reproducir sonido de notificación
                 SoundNotificationService.playNewOrderSound(applicationContext!!)
