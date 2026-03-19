@@ -1,9 +1,11 @@
 package com.example.aplicacionnuevaprueba1.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.aplicacionnuevaprueba1.data.model.*
 import com.example.aplicacionnuevaprueba1.data.repository.OrderRepository
+import com.example.aplicacionnuevaprueba1.utils.SoundNotificationService
 import com.example.aplicacionnuevaprueba1.utils.WhatsAppIntegration
 import com.example.aplicacionnuevaprueba1.utils.WhatsAppLinkGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +17,12 @@ import kotlinx.coroutines.tasks.await
 
 class AdminViewModel : ViewModel() {
     private val repository = OrderRepository()
+    
+    private var applicationContext: Context? = null
+    
+    // Tracking de pedidos para detectar nuevos
+    private var lastOrderCount = 0
+    private var lastActiveOrderCount = 0
     
     private val _orders = MutableStateFlow<List<Order>>(emptyList())
     val orders: StateFlow<List<Order>> = _orders.asStateFlow()
@@ -56,8 +64,53 @@ class AdminViewModel : ViewModel() {
                 _orderHistory.value = orders.filter { order ->
                     order.status == OrderStatus.DELIVERED || order.status == OrderStatus.CANCELLED
                 }
+                
+                // Detectar si hay un pedido nuevo activo
+                detectNewOrder(orders, _activeOrders.value)
             }
         }
+    }
+    
+    /**
+     * Inicializa el contexto de la aplicación
+     */
+    fun initializeContext(context: Context) {
+        applicationContext = context.applicationContext
+        println("🔔 SoundNotificationService initialized with context")
+    }
+    
+    /**
+     * Detecta si llegó un pedido nuevo y reproduce sonido
+     */
+    private fun detectNewOrder(allOrders: List<Order>, activeOrders: List<Order>) {
+        val currentOrderCount = allOrders.size
+        val currentActiveOrderCount = activeOrders.size
+        
+        // Verificar si aumentó el número total de pedidos
+        if (currentOrderCount > lastOrderCount && applicationContext != null) {
+            // Buscar el pedido más reciente
+            val newestOrder = allOrders.maxByOrNull { it.createdAt ?: 0L }
+            
+            // Solo reproducir sonido si es un pedido activo (no entregado/cancelado)
+            if (newestOrder != null && 
+                newestOrder.status != OrderStatus.DELIVERED && 
+                newestOrder.status != OrderStatus.CANCELLED) {
+                
+                println("🔔 ¡PEDIDO NUEVO DETECTADO! ID: ${newestOrder.orderId}, Status: ${newestOrder.status}")
+                println("   Cliente: ${newestOrder.customer.name}")
+                println("   Servicio: ${newestOrder.serviceType}")
+                
+                // Reproducir sonido de notificación
+                SoundNotificationService.playNewOrderSound(applicationContext!!)
+                
+                // Mostrar notificación en log
+                println("🔊 Reproduciendo sonido de notificación...")
+            }
+        }
+        
+        // Actualizar contadores
+        lastOrderCount = currentOrderCount
+        lastActiveOrderCount = currentActiveOrderCount
     }
     
     private fun observeOrders() {

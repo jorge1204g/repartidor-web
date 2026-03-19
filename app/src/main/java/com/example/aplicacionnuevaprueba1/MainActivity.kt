@@ -34,6 +34,8 @@ class MainActivity : ComponentActivity() {
                     
                     if (isLoggedIn) {
                         val viewModel: AdminViewModel = viewModel()
+                        // Inicializar el contexto para notificaciones de sonido
+                        viewModel.initializeContext(this)
                         AdminScreen(viewModel)
                     } else {
                         ClientLoginScreen(
