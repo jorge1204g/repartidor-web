@@ -9,6 +9,58 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [activeOrders, setActiveOrders] = useState<any[]>([]);
   const [restaurantName, setRestaurantName] = useState<string>('Cargando...');
+  const [timers, setTimers] = useState<{[key: string]: {minutes: number; seconds: number; isRunning: boolean}}>({});
+
+  // Función para calcular tiempo restante
+  const calculateTimeRemaining = (order: any) => {
+    console.log('⏱️ Calculando tiempo para pedido:', order.id);
+    console.log('📋 preparationTime:', order.preparationTime, 'tipo:', typeof order.preparationTime);
+    console.log('📋 createdAt:', order.createdAt);
+    
+    if (!order.createdAt) {
+      console.log('❌ Falta createdAt');
+      return null;
+    }
+    
+    // Si no hay preparationTime, usar 15 minutos por defecto
+    let preparationMinutes = 15;
+    if (order.preparationTime) {
+      // Extraer número del preparationTime (puede ser "15" o "35-45 minutos")
+      const timeString = String(order.preparationTime);
+      const match = timeString.match(/(\d+)/);
+      preparationMinutes = match ? parseInt(match[1]) : 15;
+    }
+    
+    console.log('📋 Minutos usados:', preparationMinutes);
+    
+    const endTime = order.createdAt + (preparationMinutes * 60 * 1000);
+    const now = Date.now();
+    const remaining = Math.max(0, endTime - now);
+    
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    
+    console.log('✅ Tiempo calculado:', { minutes, seconds, isRunning: remaining > 0 });
+    return { minutes, seconds, isRunning: remaining > 0 };
+  };
+
+  // Actualizar timers cada segundo
+  useEffect(() => {
+    console.log('🔄 Iniciando intervalo de timers. Pedidos activos:', activeOrders.length);
+    
+    const interval = setInterval(() => {
+      const newTimers: {[key: string]: any} = {};
+      activeOrders.forEach(order => {
+        console.log('📦 Revisando pedido:', order.id, 'Status:', order.status);
+        if (order.status === OrderStatus.PENDING || order.status === OrderStatus.MANUAL_ASSIGNED) {
+          newTimers[order.id] = calculateTimeRemaining(order);
+        }
+      });
+      setTimers(newTimers);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeOrders]);
 
 
   useEffect(() => {
@@ -36,15 +88,20 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     // Suscribirse a los pedidos en tiempo real
     const restaurantId = AuthService.getRestaurantId();
+    console.log('🔥 Cargando pedidos para restaurante:', restaurantId);
+    
     if (restaurantId) {
       const ordersRef = ref(database, `orders`);
       const unsubscribe = onValue(ordersRef, (snapshot) => {
         const data = snapshot.val();
+        console.log('📦 Datos recibidos de Firebase:', data ? Object.keys(data).length : 0, 'pedidos');
+        
         if (data) {
           const orders: any[] = [];
           Object.keys(data).forEach((orderId) => {
             const order = data[orderId];
             if (order.restaurantId === restaurantId) {
+              console.log('📋 Pedido encontrado:', orderId, 'Status:', order.status, 'preparationTime:', order.preparationTime);
               // Mostrar solo pedidos que no están entregados o cancelados
               if (order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.CANCELLED) {
                 orders.push({
@@ -340,6 +397,7 @@ const Dashboard: React.FC = () => {
                 <thead>
                   <tr>
                     <th>🕐 Fecha/Hora</th>
+                    <th>⏱️ Tiempo de preparación</th>
                     <th>👤 Cliente</th>
                     <th>📞 Contacto</th>
                     <th>💰 Total</th>
@@ -349,9 +407,33 @@ const Dashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {activeOrders.map((order) => (
+                  {activeOrders.map((order) => {
+                    const timer = timers[order.id];
+                    const showTimer = timer && (order.status === OrderStatus.PENDING || order.status === OrderStatus.MANUAL_ASSIGNED);
+                    
+                    return (
                     <tr key={order.id}>
                       <td style={{ fontWeight: '500' }}>{order.orderDateTime || formatDate(order.createdAt)}</td>
+                      <td>
+                        {showTimer ? (
+                          <div style={{
+                            padding: '0.5rem 0.75rem',
+                            borderRadius: '8px',
+                            backgroundColor: timer.isRunning ? '#fee2e2' : '#dcfce7',
+                            border: `2px solid ${timer.isRunning ? '#ef4444' : '#22c55e'}`,
+                            fontWeight: 'bold',
+                            fontSize: '1rem',
+                            fontFamily: 'monospace',
+                            color: timer.isRunning ? '#dc2626' : '#16a34a',
+                            textAlign: 'center',
+                            minWidth: '80px'
+                          }}>
+                            {timer.minutes}:{timer.seconds.toString().padStart(2, '0')}
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>—</span>
+                        )}
+                      </td>
                       <td>{order.customer.name}</td>
                       <td style={{ color: 'var(--text-secondary)' }}>{order.customer.phone}</td>
                       <td style={{ 
@@ -441,6 +523,49 @@ const Dashboard: React.FC = () => {
                             🎫 Código
                           </button>
                           <button 
+                            className="btn btn-info"
+                            onClick={() => {
+                              const orderCode = order.orderCode || order.id;
+                              const trackingUrl = `https://cliente-web-mu.vercel.app/seguimiento?codigo=${orderCode}`;
+                              const message = `¡Hola! Tu pedido está en proceso.\n\n` +
+                                `🎫 Código de confirmación: ${order.customerCode || 'N/A'}\n` +
+                                `📦 Pedido: ${orderCode}\n\n` +
+                                `Síguelo en tiempo real aquí:\n${trackingUrl}`;
+                              
+                              if (navigator.share) {
+                                navigator.share({
+                                  title: `Mi Pedido ${orderCode}`,
+                                  text: message,
+                                  url: trackingUrl
+                                }).catch(() => {
+                                  navigator.clipboard.writeText(message);
+                                  alert('Mensaje copiado al portapapeles');
+                                });
+                              } else {
+                                navigator.clipboard.writeText(message);
+                                alert('Mensaje copiado al portapapeles');
+                              }
+                            }}
+                            title="Compartir link de seguimiento"
+                            style={{ minWidth: 'auto', padding: '0.5rem 0.75rem', fontSize: '0.875rem' }}
+                          >
+                            📤 Compartir
+                          </button>
+                          {order.assignedToDeliveryId && ['ACCEPTED', 'ON_THE_WAY_TO_STORE', 'ARRIVED_AT_STORE', 'PICKING_UP_ORDER', 'ON_THE_WAY_TO_CUSTOMER'].includes(order.status) && (
+                            <button 
+                              className="btn btn-success"
+                              onClick={() => {
+                                const orderCode = order.orderCode || order.id;
+                                const trackingUrl = `https://cliente-web-mu.vercel.app/seguimiento?codigo=${orderCode}`;
+                                window.open(trackingUrl, '_blank');
+                              }}
+                              title="Ver ubicación del repartidor en tiempo real (abre en nueva pestaña)"
+                              style={{ minWidth: 'auto', padding: '0.5rem 0.75rem', fontSize: '0.875rem' }}
+                            >
+                              📍 ¿Dónde está mi repartidor?
+                            </button>
+                          )}
+                          <button 
                             className="btn btn-danger"
                             onClick={async () => {
                               if (!window.confirm('¿Estás seguro de que deseas eliminar este pedido? Esta acción no se puede deshacer.')) {
@@ -465,13 +590,14 @@ const Dashboard: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );})}
                 </tbody>
               </table>
             </div>
           )}
         </div>
       </main>
+
     </div>
   );
 };

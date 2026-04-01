@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AuthService from '../services/AuthService';
 
 const Login: React.FC = () => {
-  const [restaurantId, setRestaurantId] = useState<string>('restaurante1');
+  const [restaurantId, setRestaurantId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const navigate = useNavigate();

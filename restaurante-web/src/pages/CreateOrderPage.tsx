@@ -28,17 +28,26 @@ const CreateOrderPage: React.FC = () => {
   const [confirmationCode, setConfirmationCode] = useState<string>('');
   const [customerMapUrl, setCustomerMapUrl] = useState<string>(''); // URL de Google Maps
   // No se utilizan productos seleccionados ya que se elimina la funcionalidad
-  // const [selectedProducts, setSelectedProducts] = useState<Array<{item: MenuItem, quantity: number}>>([]);
+  // const [selectedProducts, setSelectedProducts] = useState<Array<{item: MenuItem, quantity: number}>> ([]);
   // const [availableProducts, setAvailableProducts] = useState<MenuItem[]>([]);
   const [manualSubtotal, setManualSubtotal] = useState<number>(0); // Se mantiene en 0 pero se mostrará vacío en el input
-  const [deliveryFee, setDeliveryFee] = useState<number>(35);
+  const [deliveryFee, setDeliveryFee] = useState<number>(0);
+  const [distanceKm, setDistanceKm] = useState<number>(0); // Kilómetros de distancia
   const [specialRequests, setSpecialRequests] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash'); // 'cash' para efectivo, 'transfer' para transferencia
   const [whoPaysDelivery, setWhoPaysDelivery] = useState<string>('restaurant'); // 'restaurant' o 'customer'
   // const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   
-  const deliveryFees = [35, 40, 45, 50, 60, 70, 80];
+  // Función para calcular tarifa basada en kilómetros
+  // Mínimo: 2 km = $35, luego +$5 por cada km adicional (con decimales)
+  const calculateDeliveryFee = (km: number): number => {
+    if (km <= 0) return 0;
+    if (km <= 2) return 35;
+    // Para km extras: $5 por cada km (incluyendo decimales)
+    const extraKm = km - 2;
+    return Math.round(35 + (extraKm * 5));
+  };
 
   const simulateOrder = () => {
     const randomNames = ['Juan Pérez', 'María García', 'Carlos López', 'Ana Martínez', 'Luis Rodríguez'];
@@ -110,6 +119,9 @@ const CreateOrderPage: React.FC = () => {
       // Generar código de confirmación único (4 dígitos) si no existe
       const confirmationCodeFinal = confirmationCode || Math.floor(1000 + Math.random() * 9000).toString();
       
+      // Generar código de pedido único (PED-XXXXXX)
+      const orderCode = `PED-${Math.floor(100000 + Math.random() * 900000)}`;
+      
       // Generar fecha y hora automática del pedido
       const orderDateTimeString = new Date().toLocaleString();
       
@@ -130,6 +142,7 @@ const CreateOrderPage: React.FC = () => {
         deliveryCost: deliveryFee,
         total: calculateTotal(),
         deliveryTimeEstimate: deliveryTime,
+        preparationTime: deliveryTime, // Tiempo de preparación para el cronómetro
         specialRequests,
         status: OrderStatus.PENDING,
         paymentMethod: paymentMethod,
@@ -138,6 +151,7 @@ const CreateOrderPage: React.FC = () => {
         deliveryReferences: deliveryReferences,
         customerMapUrl: customerMapUrl, // URL de Google Maps
         customerCode: confirmationCodeFinal, // Código de confirmación para la entrega (usando customerCode)
+        orderCode: orderCode, // Código único del pedido para seguimiento
         orderDateTime: orderDateTimeString, // Fecha y hora automática de creación del pedido
         orderType: 'MANUAL' as 'RESTAURANT' | 'MANUAL' // Indica que el pedido es creado manualmente por el admin
       };
@@ -390,13 +404,22 @@ const CreateOrderPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="deliveryFee" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                    Tarifa de Entrega
+                  <label htmlFor="distanceKm" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                    📏 Distancia (km)
                   </label>
-                  <select
-                    id="deliveryFee"
-                    value={deliveryFee}
-                    onChange={(e) => setDeliveryFee(Number(e.target.value))}
+                  <input
+                    type="number"
+                    id="distanceKm"
+                    value={distanceKm || ''}
+                    onChange={(e) => {
+                      const km = parseFloat(e.target.value) || 0;
+                      setDistanceKm(km);
+                      setDeliveryFee(calculateDeliveryFee(km));
+                    }}
+                    placeholder="Ej: 2.5"
+                    step="0.1"
+                    min="0.5"
+                    max="20"
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -404,11 +427,30 @@ const CreateOrderPage: React.FC = () => {
                       borderRadius: '0.375rem',
                       fontSize: '1rem'
                     }}
-                  >
-                    {deliveryFees.map(fee => (
-                      <option key={fee} value={fee}>${fee}</option>
-                    ))}
-                  </select>
+                  />
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: '#6c757d' }}>
+                    💡 Ingresa los kilómetros exactos (ej: 2.3, 3.8, 5.2)
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="deliveryFee" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                    💰 Tarifa de Entrega
+                  </label>
+                  <div style={{ 
+                    padding: '0.75rem', 
+                    border: '2px solid #28a745', 
+                    borderRadius: '0.375rem', 
+                    backgroundColor: '#d4edda',
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    color: '#155724'
+                  }}>
+                    ${deliveryFee}
+                  </div>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: '#28a745' }}>
+                    ✅ Mínimo 2km = $35, +$5 por km extra
+                  </p>
                 </div>
 
                 <div>
@@ -436,15 +478,17 @@ const CreateOrderPage: React.FC = () => {
               <h3>Detalles Adicionales</h3>
               
               <div style={{ marginBottom: '1rem' }}>
-                <label htmlFor="deliveryTime" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                  Tiempo Estimado de Entrega
+                <label htmlFor="preparationTime" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                  ⏱️ Tiempo de Preparación (minutos)
                 </label>
                 <input
-                  type="text"
-                  id="deliveryTime"
-                  value={deliveryTime}
+                  type="number"
+                  id="preparationTime"
+                  value={deliveryTime || ''}
                   onChange={(e) => setDeliveryTime(e.target.value)}
-                  placeholder="Ej: 30-45 minutos"
+                  placeholder="Ej: 15"
+                  min="5"
+                  max="120"
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -453,6 +497,9 @@ const CreateOrderPage: React.FC = () => {
                     fontSize: '1rem'
                   }}
                 />
+                <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: '#6c757d' }}>
+                  💡 Ingresa los minutos que tardarás en preparar el pedido
+                </p>
               </div>
 
               <div style={{ marginBottom: '1rem' }}>

@@ -4,7 +4,7 @@ import { getDatabase, ref, onValue, set, update, get, child, push } from 'fireba
 
 // Configuración de Firebase (misma que repartidor-web)
 const firebaseConfig = {
-  databaseURL: "https://myappdelivery-4a576-default-rtdb.firebaseio.com"
+  databaseURL: "https://proyecto-new-37f18-default-rtdb.firebaseio.com"
 };
 
 // Inicializar Firebase
