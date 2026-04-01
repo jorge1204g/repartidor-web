@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "184603550662",
-    "project_id": "myappdelivery-4a576",
-    "storage_bucket": "myappdelivery-4a576.firebasestorage.app"
+    "project_number": "253121042757",
+    "project_id": "proyecto-new-37f18",
+    "storage_bucket": "proyecto-new-37f18.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:184603550662:android:5f84d6a5c73afa96d0c8c7",
+        "mobilesdk_app_id": "1:253121042757:android:45b5961c0196fb698b862c",
         "android_client_info": {
           "package_name": "com.example.aplicacionnuevaprueba1"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBQJxYp-fzrHGkXRG94Du8CGUgjAc_9UY8"
+          "current_key": "AIzaSyC1BCgvd2n0tfhhqoAKyEvglnUpxlUoDKo"
         }
       ],
       "services": {

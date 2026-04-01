@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AuthService from '../services/AuthService';
 import OrderService from '../services/OrderService';
@@ -6,6 +6,8 @@ import PresenceService from '../services/PresenceService';
 import { Order, OrderStatus } from '../types/Order';
 import { DeliveryPerson } from '../types/DeliveryPerson';
 import { useMessage } from '../contexts/MessageContext';
+import ChatPreviewWidget from '../components/ChatPreviewWidget';
+import AudioNotificationService from '../utils/AudioNotificationService';
 
 // Agregar estilos CSS para animaciones
 const style = document.createElement('style');
@@ -76,8 +78,72 @@ const Dashboard: React.FC = () => {
   const [monthlyEarnings, setMonthlyEarnings] = useState<number>(0);
   const [dailyOrdersCount, setDailyOrdersCount] = useState<number>(0);
   
+  // Referencia para rastrear el conteo anterior de pedidos (usando ref para evitar problemas de cierre)
+  const previousOrderCountRef = useRef<number>(0);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  
   // Mensajes no leídos
   const { unreadCount } = useMessage();
+  const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(false);
+
+  // Función para habilitar audio manualmente
+  const handleEnableAudio = async () => {
+    await AudioNotificationService.enableAudio();
+    setIsAudioEnabled(true);
+    
+    // Probar sonido
+    playNotificationSound();
+    console.log('✅ [AUDIO] Audio habilitado manualmente por el usuario');
+  };
+
+  // Función para reproducir sonido de notificación (beep repetido)
+  const playNotificationSound = () => {
+    try {
+      // Crear AudioContext si no existe
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      const ctx = audioContextRef.current;
+      
+      // Reproducir 3 beeps consecutivos
+      let beepCount = 0;
+      const maxBeeps = 3;
+      
+      const playBeep = () => {
+        if (beepCount >= maxBeeps) return;
+        
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        // Configurar tono (frecuencia alta para alerta)
+        oscillator.frequency.value = 880; // A5
+        oscillator.type = 'sine';
+        
+        // Configurar volumen
+        gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        
+        // Reproducir beep de 0.5 segundos
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.5);
+        
+        beepCount++;
+        
+        // Siguiente beep después de 0.7 segundos
+        setTimeout(playBeep, 700);
+      };
+      
+      playBeep();
+      
+      console.log('🔔 [SONIDO] Reproduciendo notificación de pedido nuevo');
+    } catch (error) {
+      console.error('❌ Error al reproducir sonido:', error);
+    }
+  };
 
   useEffect(() => {
     // Verificar si hay sesión activa
@@ -85,6 +151,19 @@ const Dashboard: React.FC = () => {
       navigate('/login');
       return;
     }
+
+    // Habilitar audio con la primera interacción del usuario
+    const enableAudioOnFirstInteraction = () => {
+      console.log('🔊 [AUDIO] Intentando habilitar audio con interacción del usuario');
+      AudioNotificationService.enableAudio();
+      
+      // Remover listeners después de habilitar
+      document.removeEventListener('click', enableAudioOnFirstInteraction);
+      document.removeEventListener('keydown', enableAudioOnFirstInteraction);
+    };
+    
+    document.addEventListener('click', enableAudioOnFirstInteraction);
+    document.addEventListener('keydown', enableAudioOnFirstInteraction);
 
     // Variable para controlar si el componente está montado
     let isMounted = true;
@@ -118,7 +197,23 @@ const Dashboard: React.FC = () => {
         const unsubscribe = OrderService.observeOrders(deliveryId, (updatedOrders) => {
           setOrders(updatedOrders);
           calculateEarnings(updatedOrders);
+          
+          // Detectar si llegó un pedido nuevo
+          const activeOrders = updatedOrders.filter(o => o.status !== OrderStatus.DELIVERED);
+          if (activeOrders.length > previousOrderCountRef.current && previousOrderCountRef.current !== 0) {
+            console.log('🔔 [PEDIDO NUEVO] Pedido recibido! Total de pedidos:', activeOrders.length);
+            playNotificationSound();
+          }
+          previousOrderCountRef.current = activeOrders.length;
         });
+        
+        // Escuchar eventos de nuevos pedidos desde OrderService
+        const handleNewOrderEvent = (event: CustomEvent<{ count: number }>) => {
+          console.log('🔔 [EVENTO] Nuevo pedido detectado desde OrderService:', event.detail.count);
+          playNotificationSound();
+        };
+        
+        window.addEventListener('new-order-detected', handleNewOrderEvent as EventListener);
 
         // Iniciar verificación periódica de validez de cuenta
         const accountValidationInterval = setInterval(async () => {
@@ -136,6 +231,7 @@ const Dashboard: React.FC = () => {
         return () => {
           unsubscribe();
           clearInterval(accountValidationInterval);
+          window.removeEventListener('new-order-detected', handleNewOrderEvent as EventListener);
         };
       } catch (err: any) {
         setError(err.message || 'Error al cargar el dashboard');
@@ -346,6 +442,65 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard-container">
+      {/* BOTÓN PARA HABILITAR SONIDO - Solo se muestra si no está habilitado */}
+      {!isAudioEnabled && (
+        <div style={{
+          position: 'fixed',
+          top: '80px',
+          right: '20px',
+          backgroundColor: '#fff3cd',
+          border: '2px solid #ffc107',
+          borderRadius: '8px',
+          padding: '1rem',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          zIndex: 9999,
+          maxWidth: '300px'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            marginBottom: '0.5rem'
+          }}>
+            <span style={{ fontSize: '1.5rem' }}>🔔</span>
+            <div>
+              <p style={{
+                margin: 0,
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                color: '#856404'
+              }}>
+                🔊 Habilitar notificación de sonido
+              </p>
+              <p style={{
+                margin: '0.25rem 0 0 0',
+                fontSize: '0.8rem',
+                color: '#856404'
+              }}>
+                Haz click para activar las alertas de pedidos nuevos
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleEnableAudio}
+            style={{
+              width: '100%',
+              padding: '0.5rem 1rem',
+              backgroundColor: '#ffc107',
+              color: '#856404',
+              border: 'none',
+              borderRadius: '4px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              marginTop: '0.5rem'
+            }}
+          >
+            ✅ Habilitar Sonido
+          </button>
+        </div>
+      )}
+      
       {/* Encabezado */}
       <div className="dashboard-header">
         <div>
@@ -385,6 +540,9 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Widget de Vista Previa de Chats con Clientes */}
+      <ChatPreviewWidget />
 
       {/* Ganancias */}
       <div className="earnings-grid">
@@ -841,10 +999,15 @@ const Dashboard: React.FC = () => {
                         </button>
                       )}
                       
-                      {/* Botones cuando el pedido está ACEPTADO */}
-                      {order.status === OrderStatus.ACCEPTED && (
+                      {/* Botón Ver Detalles del Pedido - FIJO EN TODOS LOS ESTADOS */}
+                      {(order.status === OrderStatus.ACCEPTED || 
+                        order.status === OrderStatus.ON_THE_WAY_TO_STORE || 
+                        order.status === OrderStatus.ARRIVED_AT_STORE || 
+                        order.status === OrderStatus.PICKING_UP_ORDER || 
+                        order.status === OrderStatus.ON_THE_WAY_TO_CUSTOMER) && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {/* Botón En camino al restaurante */}
+                          {/* Botón En camino al restaurante (solo si está ACCEPTED) */}
+                          {order.status === OrderStatus.ACCEPTED && (
                           <button
                             onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_STORE)}
                             onMouseEnter={(e) => {
@@ -876,6 +1039,7 @@ const Dashboard: React.FC = () => {
                               <span>1. En camino al restaurante</span>
                             </span>
                           </button>
+                          )}
                           
                           {/* Botón Ver Detalles - Gradiente Azul */}
                           <button
@@ -1379,6 +1543,21 @@ const Dashboard: React.FC = () => {
             </span>
           )}
         </div>
+        <button
+          onClick={() => navigate('/chat-clientes')}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            border: 'none',
+            backgroundColor: 'transparent',
+            cursor: 'pointer',
+            color: location.pathname === '/chat-clientes' ? '#2196F3' : '#666'
+          }}
+        >
+          <span style={{ fontSize: '20px' }}>💬👤</span>
+          <span style={{ fontSize: '12px', marginTop: '2px' }}>Chat Clientes</span>
+        </button>
       </div>
     </div>
   );

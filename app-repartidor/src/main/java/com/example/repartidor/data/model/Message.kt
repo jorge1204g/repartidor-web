@@ -11,13 +11,20 @@ data class Message(
     val message: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val isRead: Boolean = false,
-    val messageType: MessageType = MessageType.TEXT  // Tipo de mensaje
-)
+    val messageType: MessageType = MessageType.TEXT,
+    val orderId: String? = null,
+    val imageUrl: String? = null
+) {
+    // Constructor vacío requerido por Firebase
+    constructor() : this("", "", "", "", "", "", System.currentTimeMillis(), false, MessageType.TEXT, null, null)
+}
 
 // Enum class for message types
 enum class MessageType {
     TEXT,           // Mensaje de texto
     STATUS_CHECK,   // Solicitud de estado
     ORDER_INFO,     // Información de pedido
-    ALERT         // Alerta importante
+    ALERT,          // Alerta importante
+    IMAGE,          // Imagen enviada
+    SYSTEM          // Mensaje del sistema
 }

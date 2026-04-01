@@ -42,6 +42,9 @@ fun MainScreen(
 ) {
     var selectedTab by remember { mutableStateOf(0) }
     var selectedOrder by remember { mutableStateOf<Order?>(null) }
+    var showClientChat by remember { mutableStateOf(false) }
+    var currentClientName by remember { mutableStateOf("") }
+    var currentOrderId by remember { mutableStateOf("") }
     
     // Ganancias diarias - Movido aquí para que esté disponible en todo el composable
     val dailyEarnings by viewModel.dailyEarnings.collectAsState()
@@ -132,7 +135,29 @@ fun MainScreen(
                         deliveryId = viewModel.deliveryId.value ?: "",
                         viewModel = viewModel
                     )
-                    2 -> MessagesScreen(
+                    2 -> {
+                        if (showClientChat) {
+                            ClientChatScreen(
+                                viewModel = viewModel,
+                                clientName = currentClientName,
+                                orderId = currentOrderId,
+                                onBack = {
+                                    showClientChat = false
+                                }
+                            )
+                        } else {
+                            ClientChatListScreen(
+                                viewModel = viewModel,
+                                onBack = { /* Stay in main screen */ },
+                                onClientClick = { clientName, orderId ->
+                                    currentClientName = clientName
+                                    currentOrderId = orderId
+                                    showClientChat = true
+                                }
+                            )
+                        }
+                    }
+                    3 -> MessagesScreen(
                         viewModel = viewModel,
                         onBackToDashboard = { /* Navigate back to dashboard */ }
                     )

@@ -69,6 +69,26 @@ fun BottomNavigationComponent(
             onClick = { onTabSelected(2) },
             icon = {
                 Icon(
+                    imageVector = Icons.Default.Chat,
+                    contentDescription = "Clientes"
+                )
+            },
+            label = { Text("Clientes") },
+            alwaysShowLabel = true,
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = md_theme_dark_primary,
+                selectedTextColor = md_theme_dark_primary,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                indicatorColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        )
+        
+        NavigationBarItem(
+            selected = selectedTab == 3,
+            onClick = { onTabSelected(3) },
+            icon = {
+                Icon(
                     imageVector = Icons.Default.Mail,
                     contentDescription = "Mensajes"
                 )

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
+import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.ViewModel
@@ -13,7 +14,9 @@ import com.example.repartidor.MainActivity
 import com.example.repartidor.data.model.DeliveryPerson
 import com.example.repartidor.data.model.Message
 import com.example.repartidor.data.model.Order
+import com.example.repartidor.service.LocationUpdateService
 import com.example.repartidor.utils.NotificationHelper
+import com.example.repartidor.utils.SoundNotificationService
 import com.example.repartidor.utils.WhatsAppIntegration
 
 import com.example.repartidor.data.repository.OrderRepository
@@ -36,10 +39,38 @@ import kotlinx.coroutines.tasks.await
 class DeliveryViewModel : ViewModel() {
     
     private var sharedPreferences: SharedPreferences? = null
+    private var applicationContext: Context? = null
     private val database = FirebaseDatabase.getInstance()
     private val deliveryPersonsRef = database.getReference("delivery_persons")
     private val ordersRef = database.getReference("orders")
     private val orderRepository = OrderRepository()
+    
+    // Función para iniciar el seguimiento de ubicacion
+    fun startLocationTracking(context: Context) {
+        val deliveryId = _deliveryPerson.value?.id ?: return
+        if (deliveryId.isEmpty()) return
+        
+        val intent = Intent(context, LocationUpdateService::class.java).apply {
+            action = LocationUpdateService.ACTION_START_TRACKING
+            putExtra(LocationUpdateService.EXTRA_DELIVERY_ID, deliveryId)
+        }
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+        Log.d("DeliveryViewModel", "Iniciando seguimiento de ubicacion para $deliveryId")
+    }
+    
+    // Función para detener el seguimiento de ubicacion
+    fun stopLocationTracking(context: Context) {
+        val intent = Intent(context, LocationUpdateService::class.java).apply {
+            action = LocationUpdateService.ACTION_STOP_TRACKING
+        }
+        context.startService(intent)
+        Log.d("DeliveryViewModel", "Deteniendo seguimiento de ubicacion")
+    }
     
     // Función para verificar si el repartidor tiene un pedido activo
     private fun hasActiveOrder(): Boolean {
@@ -273,12 +304,34 @@ class DeliveryViewModel : ViewModel() {
     private val _dailyOrdersCount = MutableStateFlow<Int>(0)
     val dailyOrdersCount: StateFlow<Int> = _dailyOrdersCount.asStateFlow()
     
-    fun initialize(context: Context) {
-        this.sharedPreferences = context.getSharedPreferences("delivery_prefs", Context.MODE_PRIVATE)
-        loadSavedId()
-        observeAssignedOrdersWithContext(context)
+    // Tracking de pedidos para detectar nuevos (igual que AdminViewModel)
+    private var lastOrderCount = 0
+    private var lastActiveOrderCount = 0
+    
+    init {
+        println("🔔 [INIT] DeliveryViewModel creado, inicializando observadores...")
+        observeAssignedOrdersGlobal()
         observeCompletedOrders()
         observeMessages()
+    }
+    
+    fun initialize(context: Context) {
+        this.applicationContext = context.applicationContext
+        this.sharedPreferences = context.getSharedPreferences("delivery_prefs", Context.MODE_PRIVATE)
+        println("🔔 SoundNotificationService initialized with context")
+        loadSavedId()
+        
+        // Observar cambios en los pedidos para detectar nuevos (IGUAL QUE ADMINISTRADOR)
+        viewModelScope.launch {
+            _orders.collect { orders ->
+                val activeOrders = orders.filter { order ->
+                    order.status != "DELIVERED"
+                }
+                
+                // Detectar si hay un pedido nuevo activo
+                detectNewOrder(orders, activeOrders)
+            }
+        }
         
         // Cargar estado actual de conexión desde Firebase al inicializar
         _deliveryId.value?.let { deliveryId ->
@@ -427,6 +480,11 @@ class DeliveryViewModel : ViewModel() {
                         if (newMessages.isNotEmpty()) {
                             // Para usar notificaciones reales, necesitamos el contexto de la aplicación
                             // Este se puede pasar desde la Activity cuando se inicializa el ViewModel
+                            applicationContext?.let { context ->
+                                // Reproducir sonido de mensaje
+                                SoundNotificationService.playMessageSound(context)
+                                Log.d("DeliveryViewModel", "💬 Nuevo mensaje recibido: ${newMessages.size}")
+                            }
                             // triggerMessageNotification("Nuevo mensaje", "Tienes ${newMessages.size} nuevo(s) mensaje(s)")
                         }
                     }
@@ -439,6 +497,11 @@ class DeliveryViewModel : ViewModel() {
         // Esta función puede ser expandida para usar notificaciones reales
         println("🔔 MENSAJE NOTIFICACIÓN: $title - $message")
         // Aquí podrías integrar con el sistema de notificaciones de Android
+        
+        // Reproducir sonido si tenemos contexto
+        applicationContext?.let { context ->
+            SoundNotificationService.playMessageSound(context)
+        }
     }
     
     fun sendMessage(
@@ -460,6 +523,64 @@ class DeliveryViewModel : ViewModel() {
                 ).fold(
                     onSuccess = { 
                         _errorMessage.value = "Mensaje enviado exitosamente"
+                    },
+                    onFailure = { exception ->
+                        _errorMessage.value = "Error al enviar mensaje: ${exception.message}"
+                    }
+                )
+            }
+        }
+    }
+    
+    // Método para enviar imágenes
+    fun sendImage(
+        clientId: String,
+        clientName: String,
+        imageBase64: String,
+        orderId: String
+    ) {
+        viewModelScope.launch {
+            _deliveryPerson.value?.let { deliveryPerson ->
+                val messageRepository = com.example.repartidor.data.repository.MessageRepository()
+                messageRepository.sendImage(
+                    senderId = deliveryPerson.id,
+                    senderName = deliveryPerson.name,
+                    receiverId = clientId,
+                    receiverName = clientName,
+                    imageBase64 = imageBase64,
+                    orderId = orderId
+                ).fold(
+                    onSuccess = { 
+                        _errorMessage.value = "Imagen enviada exitosamente"
+                    },
+                    onFailure = { exception ->
+                        _errorMessage.value = "Error al enviar imagen: ${exception.message}"
+                    }
+                )
+            }
+        }
+    }
+    
+    // Método para enviar mensajes a clientes
+    fun sendMessageToClient(
+        clientId: String,
+        clientName: String,
+        message: String,
+        orderId: String
+    ) {
+        viewModelScope.launch {
+            _deliveryPerson.value?.let { deliveryPerson ->
+                val messageRepository = com.example.repartidor.data.repository.MessageRepository()
+                messageRepository.sendMessage(
+                    senderId = deliveryPerson.id,
+                    senderName = deliveryPerson.name,
+                    receiverId = clientId,
+                    receiverName = clientName,
+                    message = message,
+                    messageType = com.example.repartidor.data.model.MessageType.TEXT
+                ).fold(
+                    onSuccess = { 
+                        println("✅ Mensaje enviado a cliente $clientName")
                     },
                     onFailure = { exception ->
                         _errorMessage.value = "Error al enviar mensaje: ${exception.message}"
@@ -666,6 +787,25 @@ class DeliveryViewModel : ViewModel() {
                         
                         // Emitir notificación para nuevos pedidos asignados
                         if (newAssignedOrders.isNotEmpty()) {
+                            println("🔔 ¡PEDIDO NUEVO DETECTADO! Repartidor: $deliveryId")
+                            newAssignedOrders.forEach { order ->
+                                println("   📦 Pedido ID: ${order.id}, Status: ${order.status}, OrderType: ${order.orderType}")
+                                println("   Cliente: ${order.customer.name}")
+                                println("   Restaurante: ${order.restaurantName}")
+                            }
+                            println("   Total pedidos nuevos: ${newAssignedOrders.size}")
+                            
+                            // Reproducir sonido de notificación usando el contexto guardado
+                            applicationContext?.let { ctx ->
+                                SoundNotificationService.playNewOrderSound(ctx)
+                                println("🔊 Reproduciendo sonido de notificación...")
+                            } ?: run {
+                                // Fallback: usar el contexto pasado como parámetro
+                                SoundNotificationService.playNewOrderSound(context)
+                                println("⚠️ Usando contexto de parámetro (applicationContext es null)")
+                            }
+                            
+                            // Mostrar notificación visual
                             triggerNotificationWithContext(context, "¡Nuevo pedido asignado!", "Tienes ${newAssignedOrders.size} nuevo(s) pedido(s) asignado(s)")
                         }
                     }
@@ -901,4 +1041,62 @@ class DeliveryViewModel : ViewModel() {
             false // Error al verificar, asumir que no es válido
         }
     }
+    
+    /**
+     * Detecta si llegó un pedido nuevo y reproduce sonido (COPIA EXACTA DE ADMIN)
+     */
+    private fun detectNewOrder(allOrders: List<Order>, activeOrders: List<Order>) {
+        val currentActiveOrderCount = activeOrders.size
+        
+        // Verificar si aumentó el número de pedidos activos
+        if (currentActiveOrderCount > lastActiveOrderCount && lastActiveOrderCount != 0 && applicationContext != null) {
+            // Buscar el pedido activo más reciente
+            val newestActiveOrder = activeOrders.maxByOrNull { it.id }
+            
+            if (newestActiveOrder != null) {
+                println("🔔 ¡PEDIDO NUEVO DETECTADO! ID: ${newestActiveOrder.id}, Status: ${newestActiveOrder.status}")
+                println("   Cliente: ${newestActiveOrder.customer.name}")
+                println("   Restaurante: ${newestActiveOrder.restaurantName}")
+                println("   Total pedidos activos: $currentActiveOrderCount")
+                
+                // Reproducir sonido de notificación
+                applicationContext?.let { ctx ->
+                    SoundNotificationService.playNewOrderSound(ctx)
+                    println("🔊 Reproduciendo sonido de notificación...")
+                }
+            }
+        } else if (lastActiveOrderCount == 0 && currentActiveOrderCount > 0) {
+            // Primer pedido después de estar vacío
+            val newestActiveOrder = activeOrders.maxByOrNull { it.id }
+            if (newestActiveOrder != null && applicationContext != null) {
+                println("🔔 PRIMER PEDIDO DETECTADO! ID: ${newestActiveOrder.id}")
+                SoundNotificationService.playNewOrderSound(applicationContext!!)
+            }
+        }
+        
+        // Actualizar contadores
+        lastActiveOrderCount = currentActiveOrderCount
+    }
+    
+    // Observador GLOBAL de pedidos (igual que admin observeOrders)
+    private fun observeAssignedOrdersGlobal() {
+        viewModelScope.launch {
+            _deliveryId.collect { deliveryId ->
+                if (!deliveryId.isNullOrEmpty()) {
+                    orderRepository.observeAssignedOrders(deliveryId).collect { newOrders ->
+                        println("🔄 [REPOSITORIO] Pedidos recibidos del repositorio: ${newOrders.size}")
+                        newOrders.forEach { order ->
+                            println("   ├── ID: ${order.id}")
+                            println("   ├── Status: ${order.status}")
+                            println("   └── AssignedTo: ${order.assignedToDeliveryId}")
+                        }
+                        _orders.value = newOrders.sortedByDescending { it.createdAt }
+                    }
+                } else {
+                    println("⏳ [ESPERA] Esperando ID de repartidor...")
+                }
+            }
+        }
+    }
+    
 }

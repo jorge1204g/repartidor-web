@@ -14,6 +14,7 @@ class OrderRepository {
     private val database = FirebaseDatabase.getInstance()
     private val ordersRef = database.getReference("orders")
     private val presenceRef = database.getReference("presence")
+    private val deliveryUsersRef = database.getReference("delivery_users")
     
     fun observeAssignedOrders(deliveryId: String): Flow<List<Order>> = callbackFlow {
         val listener = object : ValueEventListener {
@@ -21,9 +22,11 @@ class OrderRepository {
                 val orders = snapshot.children.mapNotNull { 
                     it.getValue(Order::class.java) 
                 }.filter { order ->
-                    // Pedidos asignados al repartidor (incluyendo entregados)
+                    // Pedidos asignados al repartidor (incluyendo entregados y pendientes)
                     val isAssignedToDelivery = order.assignedToDeliveryId == deliveryId && 
-                        order.status in listOf("ASSIGNED", "ACCEPTED", "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER", "DELIVERED")
+                        order.status in listOf("PENDING", "ASSIGNED", "ACCEPTED", "MANUAL_ASSIGNED", 
+                                              "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", 
+                                              "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER", "DELIVERED")
                     
                     // Pedidos manuales disponibles para todos los repartidores
                     val isManualAvailable = order.status == "MANUAL_ASSIGNED" && 
@@ -35,7 +38,11 @@ class OrderRepository {
                         order.assignedToDeliveryId.isEmpty() &&
                         (order.candidateDeliveryIds.isEmpty() || deliveryId in order.candidateDeliveryIds)
                     
-                    isAssignedToDelivery || isManualAvailable || isRestaurantAvailable
+                    // Pedido directamente asignado por tipo
+                    val isDirectAssignment = (order.orderType == "MANUAL" || order.orderType == "RESTAURANT") &&
+                                            order.assignedToDeliveryId == deliveryId
+                    
+                    isAssignedToDelivery || isManualAvailable || isRestaurantAvailable || isDirectAssignment
                 }
                 trySend(orders)
             }
@@ -89,6 +96,20 @@ class OrderRepository {
             orderSnapshot.getValue(Order::class.java)
         } catch (e: Exception) {
             null
+        }
+    }
+    
+    // Función para actualizar la ubicación del repartidor en tiempo real
+    suspend fun updateDeliveryLocation(deliveryId: String, latitude: Double, longitude: Double) {
+        try {
+            val locationData = mapOf(
+                "latitude" to latitude,
+                "longitude" to longitude,
+                "timestamp" to System.currentTimeMillis()
+            )
+            deliveryUsersRef.child(deliveryId).child("location").updateChildren(locationData).await()
+        } catch (e: Exception) {
+            // Handle silently
         }
     }
 }

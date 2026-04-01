@@ -1,32 +1,6 @@
 {
   "rules": {
-    "orders": {
-      ".read": true,
-      ".write": true
-    },
-    "delivery_persons": {
-      ".read": true,
-      ".write": true
-    },
-    "restaurants": {
-      ".read": true,
-      ".write": true
-    },
-    "messages": {
-      ".read": true,
-      ".write": true
-    },
-    "fcm_tokens": {
-      ".read": true,
-      ".write": true
-    },
-    "presence": {
-      ".read": true,
-      ".write": true
-    },
-    "users": {
-      ".read": true,
-      ".write": true
-    }
+    ".read": true,
+    ".write": true
   }
 }

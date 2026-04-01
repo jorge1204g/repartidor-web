@@ -647,7 +647,14 @@ const OrdersPage: React.FC = () => {
                                      cursor: pointer;
                                    ">Cerrar</button>
                                  </div>
-
+                                 
+                                 <div style="margin-top: 15px; text-align: center;">
+                                   <a href="/chat-cliente?clientId=${order.customer.id || ''}&clientName=${encodeURIComponent(order.customer.name)}&orderId=${order.orderCode}" 
+                                      style="display: inline-block; padding: 10px 20px; background-color: #2196F3; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                                     💬 Chatear con el cliente
+                                   </a>
+                                 </div>
+                                 
                                 </div>
                               `;
                               

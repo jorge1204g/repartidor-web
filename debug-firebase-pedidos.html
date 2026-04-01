@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Firebase - Pedidos</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #667eea; }
+        .error { background: #fee2e2; color: #991b1b; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .success { background: #d1fae5; color: #065f46; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .warning { background: #fef3c7; color: #92400e; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        pre { background: #f3f4f6; padding: 15px; border-radius: 4px; overflow-x: auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #e5e7eb; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Firebase - Pedidos y Repartidores</h1>
+        
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        const DB_URL = 'https://myappdelivery-4a576-default-rtdb.firebaseio.com';
+        const DELIVERY_ID = '-OmqqZ4HbDDkEzijIc2D';
+        
+        const resultsDiv = document.getElementById('results');
+        
+        async function checkFirebase() {
+            resultsDiv.innerHTML = '<p>Cargando datos de Firebase...</p>';
+            
+            try {
+                // Check orders
+                const ordersResponse = await fetch(`${DB_URL}/orders.json`);
+                const ordersData = await ordersResponse.json();
+                
+                // Check client_orders
+                const clientOrdersResponse = await fetch(`${DB_URL}/client_orders.json`);
+                const clientOrdersData = await clientOrdersResponse.json();
+                
+                // Check delivery_persons
+                const deliveryResponse = await fetch(`${DB_URL}/delivery_persons.json`);
+                const deliveryData = await deliveryResponse.json();
+                
+                let html = '';
+                
+                // ORDERS SECTION
+                html += '<div class="section">';
+                html += '<h2>📦 Orders (/orders)</h2>';
+                if (ordersData) {
+                    const orderKeys = Object.keys(ordersData);
+                    if (orderKeys.length === 0) {
+                        html += '<div class="warning">⚠️ No hay pedidos en /orders</div>';
+                    } else {
+                        html += `<div class="success">✅ ${orderKeys.length} registros encontrados</div>`;
+                        html += '<pre>' + JSON.stringify(ordersData, null, 2) + '</pre>';
+                        
+                        // Check for the problematic status field
+                        if (ordersData.status && !ordersData.orderCode) {
+                            html += '<div class="error">';
+                            html += '<strong>❌ ERROR CRÍTICO DETECTADO:</strong><br>';
+                            html += 'El campo "status" en /orders es un valor global incorrecto.<br>';
+                            html += 'Debería haber objetos con IDs de pedidos, no un status global.<br>';
+                            html += 'Status actual: <code>' + ordersData.status + '</code>';
+                            html += '</div>';
+                        }
+                    }
+                } else {
+                    html += '<div class="error">❌ /orders está vacío o es null</div>';
+                }
+                html += '</div>';
+                
+                // CLIENT ORDERS SECTION
+                html += '<div class="section">';
+                html += '<h2>🛒 Client Orders (/client_orders)</h2>';
+                if (clientOrdersData) {
+                    const clientOrderKeys = Object.keys(clientOrdersData);
+                    html += `<div class="success">✅ ${clientOrderKeys.length} registros encontrados</div>`;
+                    
+                    if (clientOrderKeys.length > 0) {
+                        // Find orders assigned to our delivery person
+                        let foundOrders = [];
+                        clientOrderKeys.forEach(key => {
+                            const order = clientOrdersData[key];
+                            if (order && (order.assignedToDeliveryId === DELIVERY_ID || order.acceptedByDeliveryId === DELIVERY_ID)) {
+                                foundOrders.push({key, order});
+                            }
+                        });
+                        
+                        if (foundOrders.length > 0) {
+                            html += '<div class="warning">';
+                            html += `<strong>⚠️ ${foundOrders.length} pedido(s) asignados al repartidor ${DELIVERY_ID}:</strong><br><br>`;
+                            foundOrders.forEach(({key, order}) => {
+                                html += `<strong>Pedido ${key}:</strong><br>`;
+                                html += `Código: ${order.orderCode || 'N/A'}<br>`;
+                                html += `Status: ${order.status || 'N/A'}<br>`;
+                                html += `Repartidor: ${order.assignedToDeliveryId || 'N/A'}<br>`;
+                                html += `Aceptado por: ${order.acceptedByDeliveryId || 'N/A'}<br>`;
+                                html += `Cliente: ${order.clientName || 'N/A'}<br>`;
+                                html += '<hr style="margin: 10px 0;">';
+                            });
+                            html += '</div>';
+                        } else {
+                            html += '<div class="success">✅ No hay pedidos asignados al repartidor problemático</div>';
+                        }
+                        
+                        html += '<pre>' + JSON.stringify(clientOrdersData, null, 2) + '</pre>';
+                    }
+                } else {
+                    html += '<div class="error">❌ /client_orders está vacío o es null</div>';
+                }
+                html += '</div>';
+                
+                // DELIVERY PERSONS SECTION
+                html += '<div class="section">';
+                html += '<h2>🚚 Delivery Persons (/delivery_persons)</h2>';
+                if (deliveryData) {
+                    const deliveryKeys = Object.keys(deliveryData);
+                    html += `<div class="success">✅ ${deliveryKeys.length} repartidores encontrados</div>`;
+                    
+                    const targetDelivery = deliveryData[DELIVERY_ID];
+                    if (targetDelivery) {
+                        html += '<div class="warning">';
+                        html += '<strong>⚠️ Repartidor problemático encontrado:</strong><br><br>';
+                        html += `<strong>ID:</strong> ${DELIVERY_ID}<br>`;
+                        html += `<strong>Nombre:</strong> ${targetDelivery.name || 'N/A'}<br>`;
+                        html += `<strong>Teléfono:</strong> ${targetDelivery.phone || 'N/A'}<br>`;
+                        html += `<strong>Activo:</strong> ${targetDelivery.active ? '✅ SÍ' : '❌ NO'}<br>`;
+                        html += '</div>';
+                    }
+                    
+                    html += '<pre>' + JSON.stringify(deliveryData, null, 2) + '</pre>';
+                } else {
+                    html += '<div class="error">❌ /delivery_persons está vacío o es null</div>';
+                }
+                html += '</div>';
+                
+                // SUMMARY AND RECOMMENDATIONS
+                html += '<div class="section">';
+                html += '<h2>📋 Resumen y Recomendaciones</h2>';
+                
+                const hasCriticalError = ordersData && ordersData.status && !ordersData.orderCode;
+                const targetDeliveryPerson = deliveryData ? deliveryData[DELIVERY_ID] : null;
+                
+                if (hasCriticalError) {
+                    html += '<div class="error">';
+                    html += '<h3>❌ PROBLEMA CRÍTICO ENCONTRADO</h3>';
+                    html += '<ul>';
+                    html += '<li><strong>Error en /orders:</strong> Hay un campo "status" global que no debería existir ahí</li>';
+                    html += '<li><strong>Causa probable:</strong> Una escritura incorrecta en Firebase sobrescribió la estructura de datos</li>';
+                    html += '<li><strong>Solución:</strong> Eliminar el campo "status" de /orders manualmente desde Firebase Console</li>';
+                    html += '</ul>';
+                    html += '</div>';
+                }
+                
+                if (targetDeliveryPerson && !targetDeliveryPerson.active) {
+                    html += '<div class="warning">';
+                    html += '<h3>⚠️ REPARTIDOR INACTIVO</h3>';
+                    html += '<p>El repartidor Jose L está marcado como inactivo (active: false)</p>';
+                    html += '<p><strong>Solución:</strong> Activar el repartidor desde Firebase Console o verificar por qué está inactivo</p>';
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error al conectar con Firebase</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p>Posibles causas:</p>
+                        <ul>
+                            <li>No hay conexión a internet</li>
+                            <li>Las reglas de seguridad de Firebase bloquean el acceso</li>
+                            <li>La URL de Firebase es incorrecta</li>
+                        </ul>
+                    </div>
+                `;
+            }
+        }
+        
+        checkFirebase();
+    </script>
+</body>
+</html>

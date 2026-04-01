@@ -57,6 +57,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.database.ktx)
     implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.storage.ktx)
     
     // Google Maps & Location
     implementation(libs.play.services.maps)
@@ -64,6 +65,9 @@ dependencies {
     
     // Navigation
     implementation(libs.androidx.navigation.compose)
+    
+    // Coil para cargar imágenes
+    implementation("io.coil-kt:coil-compose:2.5.0")
     
     // Gson
     implementation(libs.gson)

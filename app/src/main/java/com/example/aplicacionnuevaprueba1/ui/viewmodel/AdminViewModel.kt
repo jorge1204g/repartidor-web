@@ -83,22 +83,18 @@ class AdminViewModel : ViewModel() {
      * Detecta si llegó un pedido nuevo y reproduce sonido
      */
     private fun detectNewOrder(allOrders: List<Order>, activeOrders: List<Order>) {
-        val currentOrderCount = allOrders.size
         val currentActiveOrderCount = activeOrders.size
         
-        // Verificar si aumentó el número total de pedidos
-        if (currentOrderCount > lastOrderCount && applicationContext != null) {
-            // Buscar el pedido más reciente por orderId (último agregado)
-            val newestOrder = allOrders.maxByOrNull { it.orderId }
+        // Verificar si aumentó el número de pedidos activos
+        if (currentActiveOrderCount > lastActiveOrderCount && lastActiveOrderCount != 0 && applicationContext != null) {
+            // Buscar el pedido activo más reciente
+            val newestActiveOrder = activeOrders.maxByOrNull { it.orderId }
             
-            // Solo reproducir sonido si es un pedido activo (no entregado/cancelado)
-            if (newestOrder != null && 
-                newestOrder.status != OrderStatus.DELIVERED && 
-                newestOrder.status != OrderStatus.CANCELLED) {
-                
-                println("🔔 ¡PEDIDO NUEVO DETECTADO! ID: ${newestOrder.orderId}, Status: ${newestOrder.status}")
-                println("   Cliente: ${newestOrder.customer.name}")
-                println("   Restaurante: ${newestOrder.restaurantName}")
+            if (newestActiveOrder != null) {
+                println("🔔 ¡PEDIDO NUEVO DETECTADO! ID: ${newestActiveOrder.orderId}, Status: ${newestActiveOrder.status}")
+                println("   Cliente: ${newestActiveOrder.customer.name}")
+                println("   Restaurante: ${newestActiveOrder.restaurantName}")
+                println("   Total pedidos activos: $currentActiveOrderCount")
                 
                 // Reproducir sonido de notificación
                 SoundNotificationService.playNewOrderSound(applicationContext!!)
@@ -106,10 +102,16 @@ class AdminViewModel : ViewModel() {
                 // Mostrar notificación en log
                 println("🔊 Reproduciendo sonido de notificación...")
             }
+        } else if (lastActiveOrderCount == 0 && currentActiveOrderCount > 0) {
+            // Primer pedido después de estar vacío
+            val newestActiveOrder = activeOrders.maxByOrNull { it.orderId }
+            if (newestActiveOrder != null && applicationContext != null) {
+                println("🔔 PRIMER PEDIDO DETECTADO! ID: ${newestActiveOrder.orderId}")
+                SoundNotificationService.playNewOrderSound(applicationContext!!)
+            }
         }
         
         // Actualizar contadores
-        lastOrderCount = currentOrderCount
         lastActiveOrderCount = currentActiveOrderCount
     }
     

@@ -1,6 +1,6 @@
 // Configuración de la aplicación para Firebase
 export const FIREBASE_CONFIG = {
-  databaseURL: 'https://myappdelivery-4a576-default-rtdb.firebaseio.com',
+  databaseURL: 'https://proyecto-new-37f18-default-rtdb.firebaseio.com'
 };
 
 // Configuración para mantener compatibilidad con código existente

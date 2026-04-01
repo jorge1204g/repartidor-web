@@ -1,14 +1,19 @@
 package com.example.repartidor
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -17,13 +22,46 @@ import com.example.repartidor.ui.screens.MainScreen
 import com.example.repartidor.ui.theme.RepartidorTheme
 import com.example.repartidor.ui.viewmodel.DeliveryViewModel
 import com.example.repartidor.utils.NotificationHelper
+import com.example.repartidor.utils.SoundNotificationService
 import com.example.repartidor.utils.WhatsAppIntegration
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    
+    // Launcher para solicitar permisos de ubicacion
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineLocation = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val coarseLocation = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+        
+        if (fineLocation || coarseLocation) {
+            Toast.makeText(this, "Permisos de ubicacion concedidos", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Se necesitan permisos de ubicacion para el seguimiento", Toast.LENGTH_LONG).show()
+        }
+    }
+    
+    // Funcion para verificar y solicitar permisos de ubicacion
+    private fun checkAndRequestLocationPermissions() {
+        val fineLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarseLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+        
+        if (fineLocation != PackageManager.PERMISSION_GRANTED || coarseLocation != PackageManager.PERMISSION_GRANTED) {
+            locationPermissionLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ))
+        }
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Solicitar permisos de ubicacion al iniciar
+        checkAndRequestLocationPermissions()
         
         // Inicializar el callback de WhatsApp
         WhatsAppIntegration.initializeWhatsAppCallback(this)
@@ -41,6 +79,13 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) {
                         viewModel.initialize(this@MainActivity)
                         NotificationHelper.createNotificationChannel(this@MainActivity)
+                    }
+                    
+                    // Verificar permisos cuando llegan nuevos pedidos
+                    LaunchedEffect(orders.size) {
+                        if (orders.isNotEmpty()) {
+                            checkAndRequestLocationPermissions()
+                        }
                     }
                     
                     // Observar cambios en los pedidos para mostrar notificaciones

@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Función - Local</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+            font-size: 1.875rem;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 2rem;
+            font-size: 0.875rem;
+        }
+        
+        .test-section {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .test-section h2 {
+            color: #374151;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .input-group {
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        
+        .pac-container {
+            border-radius: 0.5rem !important;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+            border: 1px solid #d1d5db !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+            z-index: 9999 !important;
+        }
+        
+        .pac-item {
+            padding: 0.75rem !important;
+            cursor: pointer !important;
+            color: #4b5563 !important;
+            transition: background 0.2s !important;
+        }
+        
+        .pac-item:hover {
+            background-color: #eff6ff !important;
+        }
+        
+        .pac-icon {
+            margin-top: 8px !important;
+        }
+        
+        label {
+            display: block;
+            color: #4b5563;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            background: #eff6ff;
+            border: 2px solid #bfdbfe;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .result h3 {
+            color: #1e40af;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .result pre {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.6;
+        }
+        
+        .success {
+            background: #d1fae5;
+            border-color: #10b981;
+        }
+        
+        .success h3 {
+            color: #065f46;
+        }
+        
+        .error {
+            background: #fee2e2;
+            border-color: #ef4444;
+        }
+        
+        .error h3 {
+            color: #991b1b;
+        }
+        
+        .info-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .info-box p {
+            color: #92400e;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Prueba de Función</h1>
+        <p class="subtitle">Archivo local para testing - Implementación futura</p>
+        
+        <div class="info-box">
+            <p><strong>ℹ️ Instrucciones:</strong></p>
+            <p style="background: #fef3c7; padding: 0.5rem; border-left: 3px solid #f59e0b; margin: 0.5rem 0;"><strong>⚠️ IMPORTANTE:</strong> Para usar Google Maps necesitás una API KEY. Mientras tanto, usá el botón morado de abajo.</p>
+            <p><strong>Opción 1:</strong> Conseguí API Key en <a href="https://console.cloud.google.com/" target="_blank" style="color: #667eea;">Google Cloud Console</a></p>
+            <p><strong>Opción 2:</strong> Usá el botón "💰 Calcular Costo (si ya tienes la distancia)" e ingresá los KM manualmente</p>
+            <p><strong>Opción 3:</strong> Buscá la distancia en <a href="https://www.google.com/maps" target="_blank" style="color: #667eea;">Google Maps</a> y anotala en km</p>
+        </div>
+        
+        <!-- SECCIÓN DE PRUEBA 1 -->
+        <div class="test-section">
+            <h2>📍 Cálculo de Distancia y Costo - Google Maps</h2>
+            
+            <div class="input-group">
+                <label for="pickupAddress">🚩 Dirección de Recogida (Restaurante/Tienda):</label>
+                <input type="text" id="pickupAddress" placeholder="Ej: Av. Hidalgo #123, Fresnillo, Zac.">
+            </div>
+            
+            <div class="input-group">
+                <label for="deliveryAddress">🏁 Dirección de Entrega (Domicilio):</label>
+                <input type="text" id="deliveryAddress" placeholder="Ej: Juana Gallo #628, Francisco Villa, Fresnillo, Zac.">
+            </div>
+            
+            <div class="input-group">
+                <label for="serviceType">Tipo de Servicio:</label>
+                <select id="serviceType">
+                    <option value="">Selecciona...</option>
+                    <option value="GASOLINE">⛽ Gasolina</option>
+                    <option value="FOOD">🍔 Comida</option>
+                    <option value="STATIONERY">📝 Papelería</option>
+                    <option value="MEDICINES">💊 Medicamentos</option>
+                    <option value="BEVERAGES">🍺 Cervezas y Cigarros</option>
+                    <option value="WATER">💧 Garrafones</option>
+                    <option value="GAS">🔥 Gas LP</option>
+                    <option value="PAYMENTS">📦 Pagos</option>
+                    <option value="FAVORS">🎁 Favores</option>
+                </select>
+            </div>
+            
+            <button onclick="verificarGoogleMaps()" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); margin-top: 0.5rem;">🔍 Verificar si Google Maps Cargó</button>
+            <button onclick="calcularDistanciaYCosto()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">🗺️ Calcular Distancia con Google Maps</button>
+            <button onclick="calcularCostoManual()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin-top: 0.5rem;">💰 Calcular Costo (si ya tienes la distancia)</button>
+        </div>
+        
+        <!-- RESULTADOS -->
+        <div class="test-section">
+            <h2>📊 Resultados del Cálculo</h2>
+            <div id="result" class="result" style="display: none;">
+                <h3>Resultado:</h3>
+                <pre id="resultContent"></pre>
+            </div>
+        </div>
+        
+        <!-- TABLA DE PRECIOS -->
+        <div class="test-section">
+            <h2>💰 Tabla de Precios por Distancia</h2>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.875rem;">
+                    <thead>
+                        <tr style="background: #667eea; color: white;">
+                            <th style="padding: 0.75rem; text-align: left; border-radius: 0.5rem;">Distancia</th>
+                            <th style="padding: 0.75rem; text-align: left; border-radius: 0.5rem;">Precio Base</th>
+                            <th style="padding: 0.75rem; text-align: left; border-radius: 0.5rem;">Precio por Km Extra</th>
+                            <th style="padding: 0.75rem; text-align: left; border-radius: 0.5rem;">Total Estimado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pricingTable">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Google Maps API - CON TU API KEY REAL -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCjqlvk5RqykmtVyjYwe6vF0QWxZ9RFRYE&libraries=geometry,places" async defer></script>
+    
+    <script>
+        // Variable global para verificar si Google Maps cargó
+        window.isGoogleMapsLoaded = false;
+        let autocompleteRecogida = null;
+        let autocompleteEntrega = null;
+        
+        // Callback que llama Google Maps cuando carga
+        function initMap() {
+            console.log('✅ Google Maps API cargó exitosamente');
+            window.isGoogleMapsLoaded = true;
+            
+            // Inicializar autocompletado cuando la API esté lista
+            setTimeout(initAutocomplete, 500);
+        }
+        
+        // ============================================
+        // INICIALIZAR AUTOCOMPLETADO
+        // ============================================
+        
+        function initAutocomplete() {
+            if (!window.isGoogleMapsLoaded) {
+                console.log('⏳ Esperando a que Google Maps cargue...');
+                setTimeout(initAutocomplete, 100);
+                return;
+            }
+            
+            if (!google.maps.places) {
+                console.error('❌ Places API no está disponible - Es posible que necesites habilitarla en Google Cloud Console');
+                alert('⚠️ La API de Places no está disponible.\n\nPosibles causas:\n1. Tu API Key tiene restricciones de HTTP Referrer\n2. Places API no está habilitada\n\nPara testing local, desactiva las restricciones de tu API Key en Google Cloud Console.');
+                return;
+            }
+            
+            console.log('🚀 Inicializando autocompletado...');
+            
+            // Campo de recogida
+            const pickupInput = document.getElementById('pickupAddress');
+            if (pickupInput) {
+                const options = {
+                    types: ['geocode', 'establishment'],
+                    componentRestrictions: { country: 'mx' },
+                    fields: ['formatted_address', 'geometry', 'name']
+                };
+                
+                try {
+                    autocompleteRecogida = new google.maps.places.Autocomplete(pickupInput, options);
+                    
+                    // Prevenir que el formulario se envíe al presionar Enter
+                    pickupInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                        }
+                    });
+                    
+                    autocompleteRecogida.addListener('place_changed', () => {
+                        const place = autocompleteRecogida.getPlace();
+                        if (place.formatted_address) {
+                            console.log('✅ Recogida seleccionada:', place.formatted_address);
+                            pickupInput.value = place.formatted_address;
+                        }
+                    });
+                    
+                    console.log('✨ Autocompletado de recogida inicializado');
+                } catch (error) {
+                    console.error('❌ Error al inicializar autocompletado de recogida:', error);
+                }
+            }
+            
+            // Campo de entrega
+            const deliveryInput = document.getElementById('deliveryAddress');
+            if (deliveryInput) {
+                const options = {
+                    types: ['geocode', 'establishment'],
+                    componentRestrictions: { country: 'mx' },
+                    fields: ['formatted_address', 'geometry', 'name']
+                };
+                
+                try {
+                    autocompleteEntrega = new google.maps.places.Autocomplete(deliveryInput, options);
+                    
+                    // Prevenir que el formulario se envíe al presionar Enter
+                    deliveryInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                        }
+                    });
+                    
+                    autocompleteEntrega.addListener('place_changed', () => {
+                        const place = autocompleteEntrega.getPlace();
+                        if (place.formatted_address) {
+                            console.log('✅ Entrega seleccionada:', place.formatted_address);
+                            deliveryInput.value = place.formatted_address;
+                        }
+                    });
+                    
+                    console.log('✨ Autocompletado de entrega inicializado');
+                } catch (error) {
+                    console.error('❌ Error al inicializar autocompletado de entrega:', error);
+                }
+            }
+            
+            console.log('✨ Autocompletado inicializado correctamente');
+        }
+        
+        // ============================================
+        // CONFIGURACIÓN DE PRECIOS
+        // ============================================
+        
+        const PRECIO_BASE = 40; // Precio base hasta 2 km
+        const DISTANCIA_BASE = 2; // Distancia base incluida en precio base
+        const PRECIO_POR_KM_EXTRA = 5; // $5 pesos por km adicional
+        
+        // ============================================
+        // FUNCIÓN PARA CALCULAR DISTANCIA CON GOOGLE MAPS
+        // ============================================
+        
+        function calcularDistanciaConGoogleMaps(pickupAddress, deliveryAddress) {
+            return new Promise((resolve, reject) => {
+                if (typeof google === 'undefined' || !google.maps) {
+                    reject(new Error('Google Maps API no está cargada.'));
+                    return;
+                }
+                
+                // Usar Routes API en lugar de DistanceMatrix (deprecated)
+                const service = new google.maps.DistanceMatrixService();
+                
+                console.log('🔍 Calculando distancia con DistanceMatrix...');
+                
+                service.getDistanceMatrix(
+                    {
+                        origins: [pickupAddress],
+                        destinations: [deliveryAddress],
+                        travelMode: google.maps.TravelMode.DRIVING,
+                        unitSystem: google.maps.UnitSystem.METRIC,
+                        avoidHighways: false,
+                        avoidTolls: false
+                    },
+                    (response, status) => {
+                        console.log('📊 Respuesta de Google Maps:', response);
+                        console.log('Status:', status);
+                        
+                        if (status === 'OK') {
+                            const result = response.rows[0].elements[0];
+                            console.log('Elemento:', result);
+                            
+                            if (result.status === 'OK') {
+                                resolve({
+                                    distanciaTexto: result.distance.text,
+                                    distanciaMetros: result.distance.value,
+                                    distanciaKm: result.distance.value / 1000,
+                                    duracionTexto: result.duration.text,
+                                    duracionSegundos: result.duration.value
+                                });
+                            } else {
+                                reject(new Error('No se pudo calcular la distancia: ' + result.status));
+                            }
+                        } else {
+                            reject(new Error('Error en Distance Matrix: ' + status));
+                        }
+                    }
+                );
+            });
+        }
+        
+        // ============================================
+        // FUNCIÓN PARA CALCULAR EL COSTO DEL ENVÍO
+        // ============================================
+        
+        function calcularCostoEnvio(distanciaKm) {
+            let costoEnvio = 0;
+            let desglose = '';
+            
+            if (distanciaKm <= DISTANCIA_BASE) {
+                // Si es menos de 2 km, se cobra el precio base
+                costoEnvio = PRECIO_BASE;
+                desglose = `Precio base (hasta ${DISTANCIA_BASE} km)`;
+            } else {
+                // Si es más de 2 km, se cobra precio base + km extra
+                const kmExtra = distanciaKm - DISTANCIA_BASE;
+                const costoKmExtra = kmExtra * PRECIO_POR_KM_EXTRA;
+                costoEnvio = PRECIO_BASE + costoKmExtra;
+                desglose = `Precio base ($${PRECIO_BASE}) + ${kmExtra.toFixed(2)} km extras × $${PRECIO_POR_KM_EXTRA}/km`;
+            }
+            
+            return {
+                distanciaKm: distanciaKm.toFixed(2),
+                costoEnvio: Math.round(costoEnvio), // Redondear a pesos enteros
+                desglose: desglose,
+                precioBase: PRECIO_BASE,
+                kmExtra: Math.max(0, distanciaKm - DISTANCIA_BASE).toFixed(2),
+                costoKmExtra: Math.round(Math.max(0, distanciaKm - DISTANCIA_BASE) * PRECIO_POR_KM_EXTRA)
+            };
+        }
+        
+        // ============================================
+        // FUNCIÓN PARA VERIFICAR SI GOOGLE MAPS CARGÓ
+        // ============================================
+        
+        function verificarGoogleMaps() {
+            console.log('\n=== VERIFICANDO GOOGLE MAPS ===');
+            console.log('typeof google:', typeof google);
+            console.log('google.maps:', google?.maps);
+            console.log('window.isGoogleMapsLoaded:', window.isGoogleMapsLoaded);
+            
+            if (typeof google !== 'undefined' && google.maps && window.isGoogleMapsLoaded) {
+                alert('✅ ¡Google Maps API cargó correctamente!\n\nAhora podés usar "🗺️ Calcular Distancia con Google Maps"');
+                console.log('✅ Google Maps disponible');
+            } else {
+                const errorMsg = '❌ Google Maps NO cargó\n\n';
+                const details = [];
+                
+                if (typeof google === 'undefined') {
+                    details.push('- El objeto google no existe (script no cargó)');
+                }
+                if (!google?.maps) {
+                    details.push('- google.maps no está definido');
+                }
+                if (!window.isGoogleMapsLoaded) {
+                    details.push('- El callback initMap no se ejecutó (API Key inválida o error de red)');
+                }
+                
+                alert(errorMsg + details.join('\n') + '\n\nRevisá en la consola (F12) > Console para ver el error específico.');
+                console.log('❌ Google Maps no disponible');
+            }
+            console.log('=== FIN VERIFICACIÓN ===\n');
+        }
+        
+        // ============================================
+        // FUNCIÓN PRINCIPAL - CALCULAR DISTANCIA Y COSTO
+        // ============================================
+        
+        async function calcularDistanciaYCosto() {
+            try {
+                const pickupAddress = document.getElementById('pickupAddress').value.trim();
+                const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+                const serviceType = document.getElementById('serviceType').value;
+                
+                if (!pickupAddress || !deliveryAddress) {
+                    throw new Error('Por favor ingresa ambas direcciones (recogida y entrega)');
+                }
+                
+                console.log('\n=== CALCULANDO DISTANCIA ===');
+                console.log('🚩 Recogida:', pickupAddress);
+                console.log('🏁 Entrega:', deliveryAddress);
+                console.log('📦 Servicio:', serviceType);
+                
+                // VERIFICAR SI GOOGLE MAPS ESTÁ DISPONIBLE
+                if (!window.isGoogleMapsLoaded || typeof google === 'undefined' || !google.maps) {
+                    console.log('⚠️ Google Maps API no disponible - Usando modo manual');
+                    console.log('isGoogleMapsLoaded:', window.isGoogleMapsLoaded);
+                    console.log('typeof google:', typeof google);
+                    console.log('google.maps:', google?.maps);
+                    alert('⚠️ No hay API Key de Google Maps configurada o no cargó correctamente.\n\nUsá el botón "💰 Calcular Costo (si ya tienes la distancia)" e ingresá los kilómetros manualmente.\n\nO conseguí una API Key en: https://console.cloud.google.com/\n\nVerificá la consola (F12) para ver el error específico.');
+                    return;
+                }
+                
+                // Calcular distancia con Google Maps
+                const distanciaData = await calcularDistanciaConGoogleMaps(pickupAddress, deliveryAddress);
+                
+                console.log('✅ Distancia calculada:', distanciaData);
+                
+                // Calcular costo de envío
+                const costoData = calcularCostoEnvio(distanciaData.distanciaKm);
+                
+                console.log('💰 Costo calculado:', costoData);
+                console.log('=== CÁLCULO COMPLETADO ===\n');
+                
+                // Mostrar resultado
+                const resultado = {
+                    servicio: serviceType || 'Genérico',
+                    recogida: pickupAddress,
+                    entrega: deliveryAddress,
+                    distancia: distanciaData.distanciaTexto,
+                    duracion: distanciaData.duracionTexto,
+                    costoEnvio: `$${costoData.costoEnvio} MXN`,
+                    desglose: costoData.desglose,
+                    detalles: {
+                        distanciaKm: distanciaData.distanciaKm,
+                        precioBase: `$${PRECIO_BASE}`,
+                        kmExtra: `${costoData.kmExtra} km`,
+                        costoKmExtra: `$${costoData.costoKmExtra}`,
+                        total: `$${costoData.costoEnvio}`
+                    }
+                };
+                
+                mostrarResultado(resultado, 'success');
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                console.error('Stack:', error.stack);
+                
+                mostrarResultado({
+                    error: error.message,
+                    solucion: 'Verifica que tengas una API KEY válida de Google Maps y que las direcciones sean correctas'
+                }, 'error');
+            }
+        }
+        
+        // ============================================
+        // FUNCIÓN PARA CALCULAR COSTO MANUALMENTE
+        // ============================================
+        
+        function calcularCostoManual() {
+            try {
+                const distanciaInput = prompt('Ingresa la distancia en kilómetros:');
+                
+                if (!distanciaInput) return;
+                
+                const distanciaKm = parseFloat(distanciaInput);
+                
+                if (isNaN(distanciaKm) || distanciaKm <= 0) {
+                    alert('Por favor ingresa una distancia válida');
+                    return;
+                }
+                
+                const costoData = calcularCostoEnvio(distanciaKm);
+                
+                const resultado = {
+                    distancia: `${distanciaKm.toFixed(2)} km`,
+                    costoEnvio: `$${costoData.costoEnvio} MXN`,
+                    desglose: costoData.desglose,
+                    calculo: {
+                        precioBase: `$${PRECIO_BASE}`,
+                        kmExtra: `${costoData.kmExtra} km`,
+                        costoKmExtra: `$${costoData.costoKmExtra}`,
+                        total: `$${costoData.costoEnvio}`
+                    }
+                };
+                
+                mostrarResultado(resultado, 'success');
+                
+            } catch (error) {
+                mostrarResultado({ error: error.message }, 'error');
+            }
+        }
+        
+        // ============================================
+        // GENERAR TABLA DE PRECIOS
+        // ============================================
+        
+        function generarTablaPrecios() {
+            const tbody = document.getElementById('pricingTable');
+            const distancias = [0.1, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10];
+            
+            let html = '';
+            
+            distancias.forEach(km => {
+                const costo = calcularCostoEnvio(km);
+                const esBase = km <= DISTANCIA_BASE;
+                
+                html += `
+                    <tr style="background: ${esBase ? '#d1fae5' : '#eff6ff'}; border-bottom: 1px solid #e5e7eb;">
+                        <td style="padding: 0.75rem; font-weight: ${esBase ? 'bold' : 'normal'};">${km} km</td>
+                        <td style="padding: 0.75rem;">$${PRECIO_BASE}</td>
+                        <td style="padding: 0.75rem;">$${PRECIO_POR_KM_EXTRA}/km</td>
+                        <td style="padding: 0.75rem; font-weight: bold; color: ${esBase ? '#065f46' : '#1e40af'};">$${costo.costoEnvio}</td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // ============================================
+        // FUNCIÓN PARA MOSTRAR RESULTADOS EN PANTALLA
+        // ============================================
+        
+        function mostrarResultado(datos, tipo) {
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.className = `result ${tipo}`;
+            
+            resultContent.textContent = JSON.stringify(datos, null, 2);
+            
+            // Scroll hacia el resultado
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        // ============================================
+        // INICIALIZAR AL CARGAR LA PÁGINA
+        // ============================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Generar tabla de precios
+            generarTablaPrecios();
+            
+            // Permitir ejecutar con Enter
+            const inputs = document.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        if (e.target.id === 'pickupAddress' || e.target.id === 'deliveryAddress') {
+                            calcularDistanciaYCosto();
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

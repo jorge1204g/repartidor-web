@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,9 +23,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.example.repartidor.data.model.Order
 import com.example.repartidor.ui.theme.*
 import com.example.repartidor.utils.translateOrderStatus
+import kotlinx.coroutines.launch
 
 @Composable
 fun DashboardScreen(
@@ -40,6 +44,25 @@ fun DashboardScreen(
     val orders by viewModel.orders.collectAsState()
     val deliveryPerson by viewModel.deliveryPerson.collectAsState()
     var activeTab by remember { mutableStateOf("active") }
+    val context = LocalContext.current
+    
+    // Detectar pedidos activos para iniciar/detener seguimiento de ubicacion
+    val hasActiveDeliveryOrder = orders.any { order ->
+        order.status in listOf("ACCEPTED", "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER")
+    }
+    
+    // Iniciar o detener seguimiento de ubicacion segun el estado del pedido
+    LaunchedEffect(hasActiveDeliveryOrder) {
+        val hasLocationPermission = 
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        
+        if (hasActiveDeliveryOrder && hasLocationPermission) {
+            viewModel.startLocationTracking(context)
+        } else if (!hasActiveDeliveryOrder) {
+            viewModel.stopLocationTracking(context)
+        }
+    }
     
     // Filtrar pedidos activos y asignados manualmente/por restaurante
     val activeOrders = orders.filter { order ->
@@ -406,6 +429,9 @@ fun OrderCard(
     viewModel: com.example.repartidor.ui.viewmodel.DeliveryViewModel
 ) {
     val context = LocalContext.current
+    var showCodeDialog by remember { mutableStateOf(false) }
+    var enteredCode by remember { mutableStateOf("") }
+    var codeError by remember { mutableStateOf("") }
     
     Card(
         modifier = Modifier
@@ -757,10 +783,10 @@ fun OrderCard(
             }
             
             if (order.status == "ON_THE_WAY_TO_CUSTOMER") {
-                // Botón: Pedido entregado
+                // Botón: Pedido entregado (con validación de código)
                 Button(
                     onClick = {
-                        viewModel.deliveredOrder(order.id)
+                        showCodeDialog = true
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -816,6 +842,73 @@ fun OrderCard(
                             )
                         }
                     }
+                }
+                
+                // Diálogo para ingresar código del cliente
+                if (showCodeDialog) {
+                    AlertDialog(
+                        onDismissRequest = { 
+                            showCodeDialog = false
+                            codeError = ""
+                            enteredCode = ""
+                        },
+                        title = { Text("Código de Confirmación") },
+                        text = {
+                            Column {
+                                Text("Por favor ingrese el código del cliente para confirmar la entrega:")
+                                Spacer(modifier = Modifier.height(16.dp))
+                                OutlinedTextField(
+                                    value = enteredCode,
+                                    onValueChange = { newValue ->
+                                        // Validar que solo contenga números y tenga máximo 4 dígitos
+                                        if (newValue.length <= 4 && newValue.all { char -> char.isDigit() }) {
+                                            enteredCode = newValue
+                                        }
+                                    },
+                                    label = { Text("Código del cliente") },
+                                    placeholder = { Text("Ingrese 4 dígitos") },
+                                    isError = codeError.isNotEmpty(),
+                                    supportingText = {
+                                        if (codeError.isNotEmpty()) {
+                                            Text(
+                                                text = codeError,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    if (enteredCode == order.customerCode) {
+                                        // Código correcto, completar la entrega
+                                        viewModel.deliveredOrder(order.id)
+                                        showCodeDialog = false
+                                        codeError = ""
+                                        enteredCode = ""
+                                    } else {
+                                        // Código incorrecto
+                                        codeError = "Código incorrecto. Inténtelo de nuevo."
+                                    }
+                                }
+                            ) {
+                                Text("Confirmar")
+                            }
+                        },
+                        dismissButton = {
+                            Button(
+                                onClick = { 
+                                    showCodeDialog = false
+                                    codeError = ""
+                                    enteredCode = ""
+                                }
+                            ) {
+                                Text("Cancelar")
+                            }
+                        }
+                    )
                 }
             }
         }
