@@ -216,6 +216,19 @@ class DeliveryViewModel : ViewModel() {
         }
     }
     
+    // Funciones específicas para MOTOCICLETA (servicio de pasajeros)
+    fun goToPickup(orderId: String) {
+        updateOrderStatus(orderId, "ON_THE_WAY_TO_PICKUP")
+    }
+    
+    fun arrivedAtPickup(orderId: String) {
+        updateOrderStatus(orderId, "ARRIVED_AT_PICKUP")
+    }
+    
+    fun goToDestination(orderId: String) {
+        updateOrderStatus(orderId, "ON_THE_WAY_TO_DESTINATION")
+    }
+    
     // Método auxiliar para aceptar pedido
     private suspend fun repositoryAcceptOrder(orderId: String, deliveryPerson: DeliveryPerson): Result<Unit> {
         return try {

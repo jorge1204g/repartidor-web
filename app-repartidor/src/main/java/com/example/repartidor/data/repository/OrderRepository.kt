@@ -26,7 +26,9 @@ class OrderRepository {
                     val isAssignedToDelivery = order.assignedToDeliveryId == deliveryId && 
                         order.status in listOf("PENDING", "ASSIGNED", "ACCEPTED", "MANUAL_ASSIGNED", 
                                               "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", 
-                                              "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER", "DELIVERED")
+                                              "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER", "DELIVERED",
+                                              "ON_THE_WAY_TO_PICKUP", "ARRIVED_AT_PICKUP", 
+                                              "ON_THE_WAY_TO_DESTINATION")
                     
                     // Pedidos manuales disponibles para todos los repartidores
                     val isManualAvailable = order.status == "MANUAL_ASSIGNED" && 

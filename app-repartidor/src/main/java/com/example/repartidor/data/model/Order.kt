@@ -23,7 +23,9 @@ data class Order(
     val candidateDeliveryIds: List<String> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
     val deliveredAt: Long? = null,  // Momento en que se entregó el pedido
-    val orderType: String? = null  // Tipo de pedido: "MANUAL" o "RESTAURANT"
+    val orderType: String? = null,  // Tipo de pedido: "MANUAL" o "RESTAURANT"
+    val serviceType: String? = null,  // Tipo de servicio: "MOTORCYCLE_TAXI", "GASOLINE", etc.
+    val distance: String? = null  // Distancia calculada (para motocicleta)
 )
 
 data class Location(

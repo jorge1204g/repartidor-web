@@ -911,6 +911,125 @@ fun OrderCard(
                     )
                 }
             }
+            
+            // Botones específicos para MOTOCICLETA (servicio de pasajeros)
+            if (order.serviceType == "MOTORCYCLE_TAXI") {
+                if (order.status == "ACCEPTED") {
+                    // Botón: En camino a recoger pasajero
+                    Button(
+                        onClick = {
+                            viewModel.goToPickup(order.id)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),  // Azul
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsBike,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "🏍️ #1 En camino a recoger pasajero",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+                
+                if (order.status == "ON_THE_WAY_TO_PICKUP") {
+                    // Botón: Llegué al punto de recogida
+                    Button(
+                        onClick = {
+                            viewModel.arrivedAtPickup(order.id)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),  // Verde
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "📍 #2 Llegué al punto de recogida",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+                
+                if (order.status == "ARRIVED_AT_PICKUP") {
+                    // Botón: En camino al destino
+                    Button(
+                        onClick = {
+                            viewModel.goToDestination(order.id)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),  // Naranja
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsCar,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "🛣️ #3 En camino al destino",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+                
+                if (order.status == "ON_THE_WAY_TO_DESTINATION") {
+                    // Botón: Viaje completado
+                    Button(
+                        onClick = {
+                            viewModel.deliveredOrder(order.id)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),  // Rojo
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "🎯 #4 Viaje completado",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
         }
     }
 }
