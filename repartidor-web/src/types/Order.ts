@@ -27,6 +27,10 @@ export enum OrderStatus {
   ON_THE_WAY_TO_CUSTOMER = 'ON_THE_WAY_TO_CUSTOMER',
   DELIVERED = 'DELIVERED',
   CANCELLED = 'CANCELLED',
+  // Estados específicos para motocicleta (servicio de pasajeros)
+  ON_THE_WAY_TO_PICKUP = 'ON_THE_WAY_TO_PICKUP',
+  ARRIVED_AT_PICKUP = 'ARRIVED_AT_PICKUP',
+  ON_THE_WAY_TO_DESTINATION = 'ON_THE_WAY_TO_DESTINATION',
 }
 
 export interface Order {
@@ -55,6 +59,8 @@ export interface Order {
   deliveredDateTime?: string; // Fecha y hora de entrega formateada
   restaurantMapUrl?: string; // URL de Google Maps del restaurante
   orderType?: 'MANUAL' | 'RESTAURANT'; // Tipo de pedido: Manual o Restaurante
+  serviceType?: 'MOTORCYCLE_TAXI' | 'GASOLINE' | 'FOOD' | 'MEDICINES' | 'STATIONERY' | 'BEVERAGES' | 'WATER' | 'GAS' | 'PAYMENTS' | 'FAVORS'; // Tipo de servicio
+  distance?: number | string; // Distancia calculada (para motocicleta)
 }
 
 export interface Message {

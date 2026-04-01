@@ -963,6 +963,47 @@ const Dashboard: React.FC = () => {
                         </button>
                       )}
                       
+                      {/* Botones específicos para PEDIDOS DE MOTOCICLETA (servicio de pasajeros) */}
+                      {order.serviceType === 'MOTORCYCLE_TAXI' && order.status === OrderStatus.MANUAL_ASSIGNED && !order.assignedToDeliveryId && (
+                        <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', border: '2px solid #3b82f6' }}>
+                          <p style={{ margin: '0 0 12px 0', color: '#1e40af', fontWeight: 'bold', fontSize: '14px' }}>
+                            🏍️ SERVICIO DE MOTOCICLETA - Pasajero
+                          </p>
+                          <button
+                            onClick={() => handleAcceptOrder(order)}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 4px 14px rgba(59, 130, 246, 0.3)';
+                            }}
+                            style={{
+                              padding: '16px 24px',
+                              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '16px',
+                              cursor: 'pointer',
+                              width: '100%',
+                              fontSize: '16px',
+                              fontWeight: '700',
+                              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.3)',
+                              transition: 'all 0.3s ease',
+                              position: 'relative',
+                              overflow: 'hidden'
+                            }}
+                          >
+                            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.1-MOTO</span>
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '20px' }}>🏍️</span>
+                              <span>Aceptar Viaje de Motocicleta</span>
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                      
                       {/* Botón En camino al restaurante - Gradiente Naranja */}
                       {order.status === OrderStatus.MANUAL_ASSIGNED && order.assignedToDeliveryId === deliveryPerson?.id && (
                         <button
@@ -1311,6 +1352,152 @@ const Dashboard: React.FC = () => {
                             <span>¡Pedido Entregado Exitosamente!</span>
                           </span>
                         </div>
+                      )}
+                      
+                      {/* Botones específicos para MOTOCICLETA (después de aceptar) */}
+                      {order.serviceType === 'MOTORCYCLE_TAXI' && order.status === OrderStatus.ACCEPTED && (
+                        <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', border: '2px solid #3b82f6' }}>
+                          <p style={{ margin: '0 0 12px 0', color: '#1e40af', fontWeight: 'bold', fontSize: '14px' }}>
+                            🏍️ Viaje de Motocicleta - En Progreso
+                          </p>
+                          <button
+                            onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_PICKUP)}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 4px 14px rgba(59, 130, 246, 0.3)';
+                            }}
+                            style={{
+                              padding: '16px 24px',
+                              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '16px',
+                              cursor: 'pointer',
+                              width: '100%',
+                              fontSize: '16px',
+                              fontWeight: '700',
+                              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.3)',
+                              transition: 'all 0.3s ease',
+                              position: 'relative',
+                              overflow: 'hidden'
+                            }}
+                          >
+                            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.2-MOTO</span>
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '20px' }}>🏍️</span>
+                              <span>1. En camino a recoger pasajero</span>
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                      
+                      {order.serviceType === 'MOTORCYCLE_TAXI' && order.status === OrderStatus.ON_THE_WAY_TO_PICKUP && (
+                        <button
+                          onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ARRIVED_AT_PICKUP)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(16, 185, 129, 0.3)';
+                          }}
+                          style={{
+                            padding: '16px 24px',
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '16px',
+                            cursor: 'pointer',
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
+                            transition: 'all 0.3s ease',
+                            position: 'relative',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.3-MOTO</span>
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '20px' }}>📍</span>
+                            <span>2. Llegué al punto de recogida</span>
+                          </span>
+                        </button>
+                      )}
+                      
+                      {order.serviceType === 'MOTORCYCLE_TAXI' && order.status === OrderStatus.ARRIVED_AT_PICKUP && (
+                        <button
+                          onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_DESTINATION)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(245, 158, 11, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(245, 158, 11, 0.3)';
+                          }}
+                          style={{
+                            padding: '16px 24px',
+                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '16px',
+                            cursor: 'pointer',
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            boxShadow: '0 4px 14px rgba(245, 158, 11, 0.3)',
+                            transition: 'all 0.3s ease',
+                            position: 'relative',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.4-MOTO</span>
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '20px' }}>🛣️</span>
+                            <span>3. En camino al destino</span>
+                          </span>
+                        </button>
+                      )}
+                      
+                      {order.serviceType === 'MOTORCYCLE_TAXI' && order.status === OrderStatus.ON_THE_WAY_TO_DESTINATION && (
+                        <button
+                          onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.DELIVERED)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(239, 68, 68, 0.3)';
+                          }}
+                          style={{
+                            padding: '16px 24px',
+                            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '16px',
+                            cursor: 'pointer',
+                            width: '100%',
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            boxShadow: '0 4px 14px rgba(239, 68, 68, 0.3)',
+                            transition: 'all 0.3s ease',
+                            position: 'relative',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.5-MOTO</span>
+                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '20px' }}>🎯</span>
+                            <span>4. Viaje completado</span>
+                          </span>
+                        </button>
                       )}
                     </div>
                   </div>

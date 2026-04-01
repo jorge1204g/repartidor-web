@@ -95,17 +95,23 @@ const OrdersPage: React.FC = () => {
 
   // Traducir estado del pedido
   const translateOrderStatus = (status: OrderStatus): string => {
+    // Estados específicos para motocicleta (servicio de pasajeros)
+    if (status === OrderStatus.ON_THE_WAY_TO_PICKUP) return '🏍️ En camino a recoger pasajero';
+    if (status === OrderStatus.ARRIVED_AT_PICKUP) return '📍 Llegué al punto de recogida';
+    if (status === OrderStatus.ON_THE_WAY_TO_DESTINATION) return '🛣️ En camino al destino';
+    
+    // Estados tradicionales de pedidos
     switch (status) {
-      case OrderStatus.PENDING: return 'Pendiente';
-      case OrderStatus.ASSIGNED: return 'Asignado';
-      case OrderStatus.MANUAL_ASSIGNED: return 'Asignado Manualmente';
-      case OrderStatus.ACCEPTED: return 'Aceptado';
-      case OrderStatus.ON_THE_WAY_TO_STORE: return 'En camino al restaurante';
-      case OrderStatus.ARRIVED_AT_STORE: return 'Llegó al restaurante';
-      case OrderStatus.PICKING_UP_ORDER: return 'Recogiendo pedido';
-      case OrderStatus.ON_THE_WAY_TO_CUSTOMER: return 'En camino al cliente';
-      case OrderStatus.DELIVERED: return 'Entregado';
-      case OrderStatus.CANCELLED: return 'Cancelado';
+      case OrderStatus.PENDING: return '⏳ Pendiente';
+      case OrderStatus.ASSIGNED: return '📋 Asignado';
+      case OrderStatus.MANUAL_ASSIGNED: return '✋ Asignado Manualmente';
+      case OrderStatus.ACCEPTED: return '✅ Aceptado';
+      case OrderStatus.ON_THE_WAY_TO_STORE: return '🚗 En camino al restaurante';
+      case OrderStatus.ARRIVED_AT_STORE: return '🏪 Llegué al restaurante';
+      case OrderStatus.PICKING_UP_ORDER: return '🎒 Recogiendo pedido';
+      case OrderStatus.ON_THE_WAY_TO_CUSTOMER: return '🚴 En camino al cliente';
+      case OrderStatus.DELIVERED: return '🎉 Entregado';
+      case OrderStatus.CANCELLED: return '❌ Cancelado';
       default: return status;
     }
   };
