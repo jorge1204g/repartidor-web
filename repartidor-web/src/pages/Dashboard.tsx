@@ -1004,10 +1004,21 @@ const Dashboard: React.FC = () => {
                         </div>
                       )}
                       
-                      {/* Botón En camino al restaurante - Gradiente Naranja */}
+                      {/* Botón En camino - Texto dinámico según tipo de servicio */}
                       {order.status === OrderStatus.MANUAL_ASSIGNED && order.assignedToDeliveryId === deliveryPerson?.id && (
                         <button
-                          onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_STORE)}
+                          onClick={() => {
+                            // Determinar siguiente estado según tipo de servicio
+                            let nextStatus;
+                            if (order.serviceType === 'MOTORCYCLE_TAXI') {
+                              nextStatus = OrderStatus.ON_THE_WAY_TO_PICKUP;
+                            } else if (order.serviceType === 'GASOLINA') {
+                              nextStatus = OrderStatus.ON_THE_WAY_TO_STORE; // Usa misma lógica pero con texto diferente
+                            } else {
+                              nextStatus = OrderStatus.ON_THE_WAY_TO_STORE;
+                            }
+                            handleUpdateOrderStatus(order.id, nextStatus);
+                          }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.transform = 'translateY(-2px)';
                             e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
@@ -1032,10 +1043,18 @@ const Dashboard: React.FC = () => {
                             overflow: 'hidden'
                           }}
                         >
-                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.2</span>
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
+                            {order.serviceType === 'MOTORCYCLE_TAXI' ? '#3.2-MOTO' : order.serviceType === 'GASOLINA' ? '#3.2-GAS' : '#3.2'}
+                          </span>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '20px' }}>🛵</span>
-                            <span>1. En camino al restaurante</span>
+                            <span style={{ fontSize: '20px' }}>
+                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '🏍️' : order.serviceType === 'GASOLINA' ? '⛽' : '🛵'}
+                            </span>
+                            <span>
+                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '1. En camino por ti' : 
+                               order.serviceType === 'GASOLINA' ? '1. En camino a la gasolinera' : 
+                               '1. En camino al restaurante'}
+                            </span>
                           </span>
                         </button>
                       )}
@@ -1190,10 +1209,20 @@ const Dashboard: React.FC = () => {
                         </div>
                       )}
                       
-                      {/* Botón 2: Llegué al restaurante - Gradiente Azul */}
-                      {order.status === OrderStatus.ON_THE_WAY_TO_STORE && (
+                      {/* Botón 2: Llegué - Texto dinámico según tipo de servicio - Gradiente Azul */}
+                      {(order.status === OrderStatus.ON_THE_WAY_TO_STORE || order.status === OrderStatus.ON_THE_WAY_TO_PICKUP) && (
                         <button
-                          onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ARRIVED_AT_STORE)}
+                          onClick={() => {
+                            let nextStatus;
+                            if (order.serviceType === 'MOTORCYCLE_TAXI') {
+                              nextStatus = OrderStatus.ARRIVED_AT_PICKUP;
+                            } else if (order.serviceType === 'GASOLINA') {
+                              nextStatus = OrderStatus.ARRIVED_AT_STORE;
+                            } else {
+                              nextStatus = OrderStatus.ARRIVED_AT_STORE;
+                            }
+                            handleUpdateOrderStatus(order.id, nextStatus);
+                          }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.transform = 'translateY(-2px)';
                             e.currentTarget.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
@@ -1218,16 +1247,24 @@ const Dashboard: React.FC = () => {
                             overflow: 'hidden'
                           }}
                         >
-                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.4</span>
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
+                            {order.serviceType === 'MOTORCYCLE_TAXI' ? '#3.4-MOTO' : order.serviceType === 'GASOLINA' ? '#3.4-GAS' : '#3.4'}
+                          </span>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '20px' }}>🏪</span>
-                            <span>2. Llegué al restaurante</span>
+                            <span style={{ fontSize: '20px' }}>
+                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '🎯' : order.serviceType === 'GASOLINA' ? '⛽' : '🏪'}
+                            </span>
+                            <span>
+                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '2. Repartidor llegó' : 
+                               order.serviceType === 'GASOLINA' ? '2. Llegué a la gasolinera' : 
+                               '2. Llegué al restaurante'}
+                            </span>
                           </span>
                         </button>
                       )}
                       
-                      {/* Botón 3: Repartidor con alimentos en mochila - Gradiente Violeta */}
-                      {order.status === OrderStatus.ARRIVED_AT_STORE && (
+                      {/* Botón 3: Recogiendo pedido - Texto dinámico según servicio - Gradiente Violeta */}
+                      {order.status === OrderStatus.ARRIVED_AT_STORE && order.serviceType !== 'MOTORCYCLE_TAXI' && (
                         <button
                           onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.PICKING_UP_ORDER)}
                           onMouseEnter={(e) => {
@@ -1254,18 +1291,24 @@ const Dashboard: React.FC = () => {
                             overflow: 'hidden'
                           }}
                         >
-                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.5</span>
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
+                            {order.serviceType === 'GASOLINA' ? '#3.5-GAS' : '#3.5'}
+                          </span>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '20px' }}>🎒</span>
-                            <span>3. Repartidor con alimentos en mochila</span>
+                            <span style={{ fontSize: '20px' }}>
+                              {order.serviceType === 'GASOLINA' ? '⛽' : '🎒'}
+                            </span>
+                            <span>
+                              {order.serviceType === 'GASOLINA' ? '3. Repartidor con tu gasolina' : '3. Repartidor con alimentos en mochila'}
+                            </span>
                           </span>
                         </button>
                       )}
                       
-                      {/* Botón 4: En camino al cliente - Gradiente Cian */}
-                      {order.status === OrderStatus.PICKING_UP_ORDER && (
+                      {/* Botón 4: En camino - Texto dinámico según servicio - Gradiente Cian */}
+                      {(order.status === OrderStatus.PICKING_UP_ORDER || order.status === OrderStatus.ARRIVED_AT_PICKUP) && (
                         <button
-                          onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_CUSTOMER)}
+                          onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_DESTINATION)}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.transform = 'translateY(-2px)';
                             e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 198, 255, 0.4)';
@@ -1290,18 +1333,34 @@ const Dashboard: React.FC = () => {
                             overflow: 'hidden'
                           }}
                         >
-                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.6</span>
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
+                            {order.serviceType === 'MOTORCYCLE_TAXI' ? '#3.6-MOTO' : order.serviceType === 'GASOLINA' ? '#3.6-GAS' : '#3.6'}
+                          </span>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '20px' }}>🚴</span>
-                            <span>4. En camino al cliente</span>
+                            <span style={{ fontSize: '20px' }}>
+                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '🛣️' : order.serviceType === 'GASOLINA' ? '⛽' : '🚴'}
+                            </span>
+                            <span>
+                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '3. En camino al destino' : 
+                               order.serviceType === 'GASOLINA' ? '4. En camino a tu domicilio' : 
+                               '4. En camino al cliente'}
+                            </span>
                           </span>
                         </button>
                       )}
                       
-                      {/* Botón 5: Pedido entregado - Gradiente Rojo */}
-                      {order.status === OrderStatus.ON_THE_WAY_TO_CUSTOMER && (
+                      {/* Botón 5: Entrega/Finalización - Dinámico según servicio - Gradiente Rojo */}
+                      {order.status === OrderStatus.ON_THE_WAY_TO_DESTINATION && (
                         <button
-                          onClick={() => handleDeliveredWithCode(order.id)}
+                          onClick={() => {
+                            // Para MOTOCICLETA: finalizar directamente sin código
+                            if (order.serviceType === 'MOTORCYCLE_TAXI') {
+                              handleUpdateOrderStatus(order.id, OrderStatus.DELIVERED);
+                            } else {
+                              // Para otros servicios: pedir código
+                              handleDeliveredWithCode(order.id);
+                            }
+                          }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.transform = 'translateY(-2px)';
                             e.currentTarget.style.boxShadow = '0 6px 20px rgba(244, 67, 54, 0.4)';
@@ -1326,10 +1385,18 @@ const Dashboard: React.FC = () => {
                             overflow: 'hidden'
                           }}
                         >
-                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.7</span>
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
+                            {order.serviceType === 'MOTORCYCLE_TAXI' ? '#3.7-MOTO' : order.serviceType === 'GASOLINA' ? '#3.7-GAS' : '#3.7'}
+                          </span>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '20px' }}>✅</span>
-                            <span>5. Pedido entregado</span>
+                            <span style={{ fontSize: '20px' }}>
+                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '🎯' : order.serviceType === 'GASOLINA' ? '⛽' : '✅'}
+                            </span>
+                            <span>
+                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '4. Finalizar viaje' : 
+                               order.serviceType === 'GASOLINA' ? '5. Gasolina entregada' : 
+                               '5. Pedido entregado'}
+                            </span>
                           </span>
                         </button>
                       )}
@@ -1354,151 +1421,7 @@ const Dashboard: React.FC = () => {
                         </div>
                       )}
                       
-                      {/* Botones específicos para MOTOCICLETA (después de aceptar) */}
-                      {order.serviceType === 'MOTORCYCLE_TAXI' && order.status === OrderStatus.ACCEPTED && (
-                        <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', border: '2px solid #3b82f6' }}>
-                          <p style={{ margin: '0 0 12px 0', color: '#1e40af', fontWeight: 'bold', fontSize: '14px' }}>
-                            🏍️ Viaje de Motocicleta - En Progreso
-                          </p>
-                          <button
-                            onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_PICKUP)}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'translateY(-2px)';
-                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = '0 4px 14px rgba(59, 130, 246, 0.3)';
-                            }}
-                            style={{
-                              padding: '16px 24px',
-                              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '16px',
-                              cursor: 'pointer',
-                              width: '100%',
-                              fontSize: '16px',
-                              fontWeight: '700',
-                              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.3)',
-                              transition: 'all 0.3s ease',
-                              position: 'relative',
-                              overflow: 'hidden'
-                            }}
-                          >
-                            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.2-MOTO</span>
-                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                              <span style={{ fontSize: '20px' }}>🏍️</span>
-                              <span>1. En camino a recoger pasajero</span>
-                            </span>
-                          </button>
-                        </div>
-                      )}
-                      
-                      {order.serviceType === 'MOTORCYCLE_TAXI' && order.status === OrderStatus.ON_THE_WAY_TO_PICKUP && (
-                        <button
-                          onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ARRIVED_AT_PICKUP)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(16, 185, 129, 0.3)';
-                          }}
-                          style={{
-                            padding: '16px 24px',
-                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '16px',
-                            cursor: 'pointer',
-                            width: '100%',
-                            fontSize: '16px',
-                            fontWeight: '700',
-                            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)',
-                            transition: 'all 0.3s ease',
-                            position: 'relative',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.3-MOTO</span>
-                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '20px' }}>📍</span>
-                            <span>2. Llegué al punto de recogida</span>
-                          </span>
-                        </button>
-                      )}
-                      
-                      {order.serviceType === 'MOTORCYCLE_TAXI' && order.status === OrderStatus.ARRIVED_AT_PICKUP && (
-                        <button
-                          onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_DESTINATION)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(245, 158, 11, 0.4)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(245, 158, 11, 0.3)';
-                          }}
-                          style={{
-                            padding: '16px 24px',
-                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '16px',
-                            cursor: 'pointer',
-                            width: '100%',
-                            fontSize: '16px',
-                            fontWeight: '700',
-                            boxShadow: '0 4px 14px rgba(245, 158, 11, 0.3)',
-                            transition: 'all 0.3s ease',
-                            position: 'relative',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.4-MOTO</span>
-                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '20px' }}>🛣️</span>
-                            <span>3. En camino al destino</span>
-                          </span>
-                        </button>
-                      )}
-                      
-                      {order.serviceType === 'MOTORCYCLE_TAXI' && order.status === OrderStatus.ON_THE_WAY_TO_DESTINATION && (
-                        <button
-                          onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.DELIVERED)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateY(-2px)';
-                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(239, 68, 68, 0.3)';
-                          }}
-                          style={{
-                            padding: '16px 24px',
-                            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '16px',
-                            cursor: 'pointer',
-                            width: '100%',
-                            fontSize: '16px',
-                            fontWeight: '700',
-                            boxShadow: '0 4px 14px rgba(239, 68, 68, 0.3)',
-                            transition: 'all 0.3s ease',
-                            position: 'relative',
-                            overflow: 'hidden'
-                          }}
-                        >
-                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#3.5-MOTO</span>
-                          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '20px' }}>🎯</span>
-                            <span>4. Viaje completado</span>
-                          </span>
-                        </button>
-                      )}
+
                     </div>
                   </div>
                 ))}

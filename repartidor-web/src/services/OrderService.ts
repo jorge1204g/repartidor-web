@@ -122,10 +122,11 @@ class OrderService {
         candidateDeliveryIds: []  // Limpiar candidatos una vez asignado
       };
       
-      // Actualizar solo los campos específicos del pedido, manteniendo el resto de la información intacta
+      // Actualizar en AMBAS colecciones (orders y client_orders)
       const updatesWithPath: any = {};
       Object.keys(updates).forEach(key => {
         updatesWithPath[`orders/${orderId}/${key}`] = updates[key];
+        updatesWithPath[`client_orders/${orderId}/${key}`] = updates[key];  // TAMBIÉN EN CLIENT_ORDERS
       });
       
       await firebaseUpdate(ref(database), updatesWithPath);
@@ -148,19 +149,46 @@ class OrderService {
     try {
       console.log('Actualizando estado del pedido:', orderId, 'a:', newStatus);
       
-      // Actualizar el estado del pedido en Firebase
+      // Obtener el pedido para verificar si es MOTORCYCLE_TAXI
+      const orderRef = ref(database, `orders/${orderId}`);
+      const orderSnapshot = await get(orderRef);
+      const order = orderSnapshot.val();
+      
+      // Mapeo de estados para MOTORCYCLE_TAXI
+      const statusMapping: { [key: string]: string } = {
+        // Flujo comida → Flujo motocicleta (taxi)
+        'ON_THE_WAY_TO_STORE': 'ON_THE_WAY_TO_PICKUP',      // En camino al restaurante → En camino por ti
+        'ARRIVED_AT_STORE': 'ARRIVED_AT_PICKUP',            // Llegué al restaurante → Repartidor llegó
+        'ORDER_READY': 'ON_THE_WAY_TO_DESTINATION',         // Con alimentos → En camino al destino
+        'ON_THE_WAY_TO_CUSTOMER': 'ON_THE_WAY_TO_DESTINATION', // En camino al cliente → En camino al destino
+        'DELIVERED': 'DELIVERED'                             // Pedido entregado → Viaje completado
+      };
+      
+      // Si es motocicleta, convertir el estado
+      let finalStatus = newStatus;
+      if (order?.serviceType === 'MOTORCYCLE_TAXI' && statusMapping[newStatus]) {
+        console.log('🏍️ [MOTOCICLETA] Convirtiendo estado:', newStatus, '→', statusMapping[newStatus]);
+        finalStatus = statusMapping[newStatus];
+      }
+      
+      // Actualizar el estado del pedido en Firebase (AMBAS colecciones)
       const updates: any = {};
-      updates[`orders/${orderId}/status`] = newStatus;
+      updates[`orders/${orderId}/status`] = finalStatus;
+      updates[`client_orders/${orderId}/status`] = finalStatus;  // ACTUALIZAR TAMBIÉN CLIENT_ORDERS
       
       // Si el nuevo estado es DELIVERED, registrar el momento de entrega
-      if (newStatus === 'DELIVERED') {
+      if (finalStatus === 'DELIVERED') {
         updates[`orders/${orderId}/deliveredAt`] = Date.now();
+        updates[`client_orders/${orderId}/deliveredAt`] = Date.now();  // TAMBIÉN EN CLIENT_ORDERS
         // Agregar fecha y hora formateada de entrega
         const deliveredDateTimeString = new Date().toLocaleString();
         updates[`orders/${orderId}/deliveredDateTime`] = deliveredDateTimeString;
+        updates[`client_orders/${orderId}/deliveredDateTime`] = deliveredDateTimeString;  // TAMBIÉN EN CLIENT_ORDERS
       }
       
       await firebaseUpdate(ref(database), updates);
+      
+      console.log('✅ Estado actualizado:', finalStatus);
       
       return {
         success: true,
