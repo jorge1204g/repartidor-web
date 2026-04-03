@@ -64,7 +64,6 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [showCodeDialog, setShowCodeDialog] = useState<boolean>(false);
-  const [showOrderDetails, setShowOrderDetails] = useState<boolean>(false);
   const [currentOrderId, setCurrentOrderId] = useState<string>('');
   const [enteredCode, setEnteredCode] = useState<string>('');
   const [codeError, setCodeError] = useState<string>('');
@@ -682,20 +681,124 @@ const Dashboard: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* Mostrar productos */}
+                    {/* Mostrar productos o descripción del servicio */}
                     <div style={{ marginTop: '8px' }}>
-                      <strong style={{ fontSize: '14px', color: '#f093fb' }}>[#4.3] Productos:</strong>
-                      <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
-                        {order.items.map((item, index) => (
-                          <li key={index} style={{ fontSize: '13px', color: '#FFF' }}>
-                            {item.name} x{item.quantity} (${(item.price * item.quantity).toFixed(2)})
-                          </li>
-                        ))}
-                      </ul>
+                      <strong style={{ fontSize: '14px', color: '#f093fb' }}>[#4.3] {order.serviceType === 'MOTORCYCLE_TAXI' ? '🏍️ Servicio de Motocicleta:' : 'Productos:'}</strong>
+                      {order.serviceType === 'MOTORCYCLE_TAXI' ? (
+                        // Para servicios de motocicleta, mostrar la ruta
+                        <div style={{ fontSize: '13px', color: '#FFF', marginTop: '4px', padding: '8px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px' }}>
+                          {order.items && order.items.length > 0 ? (
+                            <>
+                              {order.items[0].name}
+                              {order.distance && <span style={{ marginLeft: '8px', color: '#9CA3AF' }}>({order.distance} km)</span>}
+                            </>
+                          ) : (
+                            'Servicio de transporte en motocicleta'
+                          )}
+                        </div>
+                      ) : (
+                        // Para pedidos normales de restaurante, mostrar lista de productos
+                        <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
+                          {order.items.map((item, index) => (
+                            <li key={index} style={{ fontSize: '13px', color: '#FFF' }}>
+                              {item.name} x{item.quantity} (${(item.price * item.quantity).toFixed(2)})
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                     
-                    {/* Mostrar información de contacto y dirección solo después de aceptar el pedido */}
-                    {order.status !== OrderStatus.MANUAL_ASSIGNED || order.assignedToDeliveryId ? (
+                    {/* Mostrar información específica para MOTOCICLETA antes de aceptar */}
+                    {order.serviceType === 'MOTORCYCLE_TAXI' && order.status === OrderStatus.MANUAL_ASSIGNED && !order.assignedToDeliveryId ? (
+                      <>
+                        {/* Información básica para Motocicleta - ANTES DE ACEPTAR */}
+                        <div style={{ marginBottom: '8px', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', border: '2px solid #3b82f6' }}>
+                          <div style={{ color: '#bfdbfe', fontSize: '12px', marginBottom: '8px', fontWeight: '700' }}>🏍️ SERVICIO DE MOTOCICLETA - Pasajero</div>
+                          
+                          {/* Punto de Partida */}
+                          <div style={{ marginBottom: '12px' }}>
+                            <p style={{ margin: '4px 0', fontSize: '13px', color: '#FFF', fontWeight: '600' }}>
+                              <span style={{ color: '#60a5fa', marginRight: '4px' }}>🏁</span> 
+                              DESTINO:
+                            </p>
+                            <p style={{ margin: '4px 0', fontSize: '14px', color: '#e5e7eb' }}>
+                              {order.deliveryAddress || 'Por definir'}
+                            </p>
+                          </div>
+                          
+                          {/* Botón Llamar al Cliente - Gradiente Azul */}
+                          <button
+                            onClick={() => window.open(`tel:${order.customer.phone}`, '_blank')}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 4px 14px rgba(59, 130, 246, 0.3)';
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '14px 20px',
+                              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '16px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '10px',
+                              fontSize: '15px',
+                              fontWeight: '600',
+                              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.3)',
+                              transition: 'all 0.3s ease',
+                              marginTop: '8px'
+                            }}
+                          >
+                            <span style={{ fontSize: '18px' }}>📞</span>
+                            <span>Llamar al Cliente</span>
+                          </button>
+                          
+                          {/* Botón Copiar Teléfono */}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(order.customer.phone);
+                              alert('✅ Número copiado: ' + order.customer.phone);
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(147, 51, 234, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 4px 14px rgba(147, 51, 234, 0.3)';
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '14px 20px',
+                              background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '16px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '10px',
+                              fontSize: '15px',
+                              fontWeight: '600',
+                              boxShadow: '0 4px 14px rgba(147, 51, 234, 0.3)',
+                              transition: 'all 0.3s ease',
+                              marginTop: '8px'
+                            }}
+                          >
+                            <span style={{ fontSize: '18px' }}>📋</span>
+                            <span>Copiar Número de Teléfono</span>
+                          </button>
+                        </div>
+                      </>
+                    ) : order.status !== OrderStatus.MANUAL_ASSIGNED || order.assignedToDeliveryId ? (
                       <>
                     <div style={{ marginBottom: '8px', padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
                       <div style={{ color: '#a8edea', fontSize: '12px', marginBottom: '4px', fontWeight: '600' }}>📌 ELEMENTO #1 - INFORMACIÓN BÁSICA</div>
@@ -1007,13 +1110,20 @@ const Dashboard: React.FC = () => {
                       {/* Botón En camino - Texto dinámico según tipo de servicio */}
                       {order.status === OrderStatus.MANUAL_ASSIGNED && order.assignedToDeliveryId === deliveryPerson?.id && (
                         <button
-                          onClick={() => {
+                          onClick={async () => {
+                            // Detectar si es MOTOCICLETA: por serviceType O porque viene de la app móvil
+                            const isMotorcycle = order.serviceType === 'MOTORCYCLE_TAXI' || 
+                                               order.distance !== undefined; // Los pedidos de moto tienen distancia calculada
+                            
+                            // Pequeño delay para evitar saturar Firebase y la app Android
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                            
                             // Determinar siguiente estado según tipo de servicio
                             let nextStatus;
-                            if (order.serviceType === 'MOTORCYCLE_TAXI') {
+                            if (isMotorcycle) {
                               nextStatus = OrderStatus.ON_THE_WAY_TO_PICKUP;
-                            } else if (order.serviceType === 'GASOLINA') {
-                              nextStatus = OrderStatus.ON_THE_WAY_TO_STORE; // Usa misma lógica pero con texto diferente
+                            } else if (order.serviceType === 'GASOLINE') {
+                              nextStatus = OrderStatus.ON_THE_WAY_TO_STORE;
                             } else {
                               nextStatus = OrderStatus.ON_THE_WAY_TO_STORE;
                             }
@@ -1044,16 +1154,25 @@ const Dashboard: React.FC = () => {
                           }}
                         >
                           <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
-                            {order.serviceType === 'MOTORCYCLE_TAXI' ? '#3.2-MOTO' : order.serviceType === 'GASOLINA' ? '#3.2-GAS' : '#3.2'}
+                            {(() => {
+                              const isMoto = order.serviceType === 'MOTORCYCLE_TAXI' || order.distance !== undefined;
+                              return isMoto ? '#3.2-MOTO' : order.serviceType === 'GASOLINE' ? '#3.2-GAS' : '#3.2';
+                            })()}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                             <span style={{ fontSize: '20px' }}>
-                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '🏍️' : order.serviceType === 'GASOLINA' ? '⛽' : '🛵'}
+                              {(() => {
+                                const isMoto = order.serviceType === 'MOTORCYCLE_TAXI' || order.distance !== undefined;
+                                return isMoto ? '🏍️' : order.serviceType === 'GASOLINE' ? '⛽' : '🛵';
+                              })()}
                             </span>
                             <span>
-                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '1. En camino por ti' : 
-                               order.serviceType === 'GASOLINA' ? '1. En camino a la gasolinera' : 
-                               '1. En camino al restaurante'}
+                              {(() => {
+                                const isMoto = order.serviceType === 'MOTORCYCLE_TAXI' || order.distance !== undefined;
+                                return isMoto ? '1. En camino por ti' : 
+                                       order.serviceType === 'GASOLINE' ? '1. En camino a la gasolinera' : 
+                                       '1. En camino al restaurante';
+                              })()}
                             </span>
                           </span>
                         </button>
@@ -1212,15 +1331,18 @@ const Dashboard: React.FC = () => {
                       {/* Botón 2: Llegué - Texto dinámico según tipo de servicio - Gradiente Azul */}
                       {(order.status === OrderStatus.ON_THE_WAY_TO_STORE || order.status === OrderStatus.ON_THE_WAY_TO_PICKUP) && (
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             let nextStatus;
                             if (order.serviceType === 'MOTORCYCLE_TAXI') {
                               nextStatus = OrderStatus.ARRIVED_AT_PICKUP;
-                            } else if (order.serviceType === 'GASOLINA') {
+                            } else if (order.serviceType === 'GASOLINE') {
                               nextStatus = OrderStatus.ARRIVED_AT_STORE;
                             } else {
                               nextStatus = OrderStatus.ARRIVED_AT_STORE;
                             }
+                            
+                            // Pequeño delay para evitar saturar Firebase y la app Android
+                            await new Promise(resolve => setTimeout(resolve, 300));
                             handleUpdateOrderStatus(order.id, nextStatus);
                           }}
                           onMouseEnter={(e) => {
@@ -1248,15 +1370,15 @@ const Dashboard: React.FC = () => {
                           }}
                         >
                           <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
-                            {order.serviceType === 'MOTORCYCLE_TAXI' ? '#3.4-MOTO' : order.serviceType === 'GASOLINA' ? '#3.4-GAS' : '#3.4'}
+                            {order.serviceType === 'MOTORCYCLE_TAXI' ? '#3.4-MOTO' : order.serviceType === 'GASOLINE' ? '#3.4-GAS' : '#3.4'}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                             <span style={{ fontSize: '20px' }}>
-                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '🎯' : order.serviceType === 'GASOLINA' ? '⛽' : '🏪'}
+                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '🎯' : order.serviceType === 'GASOLINE' ? '⛽' : '🏪'}
                             </span>
                             <span>
                               {order.serviceType === 'MOTORCYCLE_TAXI' ? '2. Repartidor llegó' : 
-                               order.serviceType === 'GASOLINA' ? '2. Llegué a la gasolinera' : 
+                               order.serviceType === 'GASOLINE' ? '2. Llegué a la gasolinera' : 
                                '2. Llegué al restaurante'}
                             </span>
                           </span>
@@ -1292,14 +1414,14 @@ const Dashboard: React.FC = () => {
                           }}
                         >
                           <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
-                            {order.serviceType === 'GASOLINA' ? '#3.5-GAS' : '#3.5'}
+                            {order.serviceType === 'GASOLINE' ? '#3.5-GAS' : '#3.5'}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                             <span style={{ fontSize: '20px' }}>
-                              {order.serviceType === 'GASOLINA' ? '⛽' : '🎒'}
+                              {order.serviceType === 'GASOLINE' ? '⛽' : '🎒'}
                             </span>
                             <span>
-                              {order.serviceType === 'GASOLINA' ? '3. Repartidor con tu gasolina' : '3. Repartidor con alimentos en mochila'}
+                              {order.serviceType === 'GASOLINE' ? '3. Repartidor con tu gasolina' : '3. Repartidor con alimentos en mochila'}
                             </span>
                           </span>
                         </button>
@@ -1308,7 +1430,11 @@ const Dashboard: React.FC = () => {
                       {/* Botón 4: En camino - Texto dinámico según servicio - Gradiente Cian */}
                       {(order.status === OrderStatus.PICKING_UP_ORDER || order.status === OrderStatus.ARRIVED_AT_PICKUP) && (
                         <button
-                          onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_DESTINATION)}
+                          onClick={async () => {
+                            // Pequeño delay para evitar saturar Firebase y la app Android
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                            handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_DESTINATION);
+                          }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.transform = 'translateY(-2px)';
                             e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 198, 255, 0.4)';
@@ -1334,15 +1460,15 @@ const Dashboard: React.FC = () => {
                           }}
                         >
                           <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
-                            {order.serviceType === 'MOTORCYCLE_TAXI' ? '#3.6-MOTO' : order.serviceType === 'GASOLINA' ? '#3.6-GAS' : '#3.6'}
+                            {order.serviceType === 'MOTORCYCLE_TAXI' ? '#3.6-MOTO' : order.serviceType === 'GASOLINE' ? '#3.6-GAS' : '#3.6'}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                             <span style={{ fontSize: '20px' }}>
-                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '🛣️' : order.serviceType === 'GASOLINA' ? '⛽' : '🚴'}
+                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '🛣️' : order.serviceType === 'GASOLINE' ? '⛽' : '🚴'}
                             </span>
                             <span>
                               {order.serviceType === 'MOTORCYCLE_TAXI' ? '3. En camino al destino' : 
-                               order.serviceType === 'GASOLINA' ? '4. En camino a tu domicilio' : 
+                               order.serviceType === 'GASOLINE' ? '4. En camino a tu domicilio' : 
                                '4. En camino al cliente'}
                             </span>
                           </span>
@@ -1352,12 +1478,25 @@ const Dashboard: React.FC = () => {
                       {/* Botón 5: Entrega/Finalización - Dinámico según servicio - Gradiente Rojo */}
                       {order.status === OrderStatus.ON_THE_WAY_TO_DESTINATION && (
                         <button
-                          onClick={() => {
+                          onClick={async () => {
+                            // Detectar si es MOTOCICLETA: por serviceType O por usar estados específicos
+                            const isMotorcycle = order.serviceType === 'MOTORCYCLE_TAXI' || 
+                                                 order.status === OrderStatus.ON_THE_WAY_TO_DESTINATION;
+                            
+                            console.log('🔍 [DEBUG] serviceType:', order.serviceType);
+                            console.log('🔍 [DEBUG] status:', order.status);
+                            console.log('🔍 [DEBUG] ¿Es MOTOCICLETA?:', isMotorcycle);
+                            
+                            // Pequeño delay para evitar saturar Firebase y la app Android
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                            
                             // Para MOTOCICLETA: finalizar directamente sin código
-                            if (order.serviceType === 'MOTORCYCLE_TAXI') {
+                            if (isMotorcycle) {
+                              console.log('✅ [MOTO] Finalizando SIN código');
                               handleUpdateOrderStatus(order.id, OrderStatus.DELIVERED);
                             } else {
                               // Para otros servicios: pedir código
+                              console.log('⚠️ [OTRO] Pidiendo código de confirmación');
                               handleDeliveredWithCode(order.id);
                             }
                           }}
@@ -1386,15 +1525,15 @@ const Dashboard: React.FC = () => {
                           }}
                         >
                           <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
-                            {order.serviceType === 'MOTORCYCLE_TAXI' ? '#3.7-MOTO' : order.serviceType === 'GASOLINA' ? '#3.7-GAS' : '#3.7'}
+                            {order.serviceType === 'MOTORCYCLE_TAXI' ? '#3.7-MOTO' : order.serviceType === 'GASOLINE' ? '#3.7-GAS' : '#3.7'}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                             <span style={{ fontSize: '20px' }}>
-                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '🎯' : order.serviceType === 'GASOLINA' ? '⛽' : '✅'}
+                              {order.serviceType === 'MOTORCYCLE_TAXI' ? '🎯' : order.serviceType === 'GASOLINE' ? '⛽' : '✅'}
                             </span>
                             <span>
                               {order.serviceType === 'MOTORCYCLE_TAXI' ? '4. Finalizar viaje' : 
-                               order.serviceType === 'GASOLINA' ? '5. Gasolina entregada' : 
+                               order.serviceType === 'GASOLINE' ? '5. Gasolina entregada' : 
                                '5. Pedido entregado'}
                             </span>
                           </span>
