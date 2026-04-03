@@ -411,7 +411,7 @@ const Dashboard: React.FC = () => {
     switch (status) {
       case OrderStatus.PENDING: return 'Pendiente';
       case OrderStatus.ASSIGNED: return 'Asignado';
-      case OrderStatus.MANUAL_ASSIGNED: return 'Asignado Manualmente';
+      case OrderStatus.MANUAL_ASSIGNED: return 'Pedido creado por el restaurante';
       case OrderStatus.ACCEPTED: return 'Aceptado';
       case OrderStatus.ON_THE_WAY_TO_STORE: return 'En camino al restaurante';
       case OrderStatus.ARRIVED_AT_STORE: return 'Llegó al restaurante';
@@ -656,9 +656,73 @@ const Dashboard: React.FC = () => {
                         boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
                       }}>
                         <span style={{ color: '#FFF', opacity: 0.9, marginRight: '4px' }}>[#4.5]</span> 
-                        {order.orderType === 'MANUAL' ? 'Creado por Administrador' : 
-                         order.orderType === 'RESTAURANT' ? 'Pedido creado por el cliente' : 
-                         translateOrderStatus(order.status)}
+                        {(() => {
+                          // Verificar si es viaje en moto por serviceType o por contenido del item
+                          const isMotorcycle = order.serviceType === 'MOTORCYCLE_TAXI' || 
+                            (order.items && order.items.length > 0 && order.items[0].name && 
+                             (order.items[0].name.includes('Motocicleta') || order.items[0].name.includes('Taxi')));
+                          
+                          // Verificar si es pedido de gasolina/combustible
+                          const isGasoline = order.items && order.items.length > 0 && order.items[0].name && 
+                            (order.items[0].name.includes('Combustible') || 
+                             order.items[0].name.includes('Gasolina') ||
+                             order.items[0].name.includes('Magna') ||
+                             order.items[0].name.includes('Premium') ||
+                             order.items[0].name.includes('Diesel'));
+                          
+                          // Verificar si es pedido de papelería/artículos
+                          const isStationery = order.items && order.items.length > 0 && order.items[0].name && 
+                            order.items[0].name.includes('Artículos');
+                          
+                          // Verificar si es pedido de medicamentos
+                          const isMedicine = order.items && order.items.length > 0 && order.items[0].name && 
+                            order.items[0].name.includes('Medicamentos');
+                          
+                          // Verificar si es pedido de cervezas y cigarros
+                          const isBeerAndCigarettes = order.items && order.items.length > 0 && order.items[0].name && 
+                            order.items[0].name.includes('Cervezas');
+                          
+                          // Verificar si es pedido de garrafones de agua
+                          const isWaterJugs = order.items && order.items.length > 0 && order.items[0].name && 
+                            order.items[0].name.includes('Garrafones');
+                          
+                          // Verificar si es pedido de gas LP
+                          const isGasLP = order.items && order.items.length > 0 && order.items[0].name && 
+                            (order.items[0].name.includes('Tanque') || 
+                             order.items[0].name.includes('Gas LP') ||
+                             order.items[0].name.includes('Gas'));
+                          
+                          // Verificar si es pago de servicios
+                          const isServicePayment = order.items && order.items.length > 0 && order.items[0].name && 
+                            order.items[0].name.includes('Tipo de pago');
+                          
+                          // Verificar si es favor o regalos
+                          const isFavorOrGift = order.items && order.items.length > 0 && order.items[0].name && 
+                            order.items[0].name.includes('Tipo de favor');
+                          
+                          if (isMotorcycle) return '🏍️ Viaje en moto';
+                          if (isGasoline) return '⛽ Pedido de Gasolina';
+                          if (isStationery) return '📝 Pedido de Papelería';
+                          if (isMedicine) return '💊 Pedido de Medicamentos';
+                          if (isBeerAndCigarettes) return '🍺 Pedido de Cerveza y Cigarros';
+                          if (isWaterJugs) return '💧 Pedido de Garrafón de Agua';
+                          if (isGasLP) return '🔥 Pedido de Gas LP';
+                          if (isServicePayment) return '💳 Pago de Servicios';
+                          if (isFavorOrGift) return '🎁 Favor o Regalos';
+                          
+                          // Diferenciar entre pedidos creados por admin vs pedidos del cliente
+                          if (order.orderType === 'MANUAL') {
+                            // Si el restaurante es "Pedido del cliente", es un pedido creado por el cliente
+                            if (order.restaurantName === 'Pedido del cliente') {
+                              return '🍔 Favor de comida';
+                            }
+                            // De lo contrario, es un pedido creado manualmente por el administrador
+                            return '👨‍💼 Creado por Administrador';
+                          }
+                          
+                          if (order.orderType === 'RESTAURANT') return '🍔 Favor de comida';
+                          return translateOrderStatus(order.status);
+                        })()}
                       </span>
                     </div>
                     
@@ -676,7 +740,11 @@ const Dashboard: React.FC = () => {
                           WebkitBackgroundClip: 'text',
                           WebkitTextFillColor: 'transparent'
                         }}>
-                          ${order.deliveryCost.toFixed(2)}
+                          ${(() => {
+                            // DEBUG: Mostrar valores reales
+                            console.log('💰 Pedido:', order.orderId, '| deliveryCost:', order.deliveryCost, '| total:', order.total, '| subtotal:', order.subtotal);
+                            return order.deliveryCost.toFixed(2);
+                          })()}
                         </span>
                       </div>
                     </div>
