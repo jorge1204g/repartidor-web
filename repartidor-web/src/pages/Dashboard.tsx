@@ -708,8 +708,14 @@ const Dashboard: React.FC = () => {
                       )}
                     </div>
                     
+                    {/* DEBUG: Ver serviceType en consola */}
+                    {(() => {
+                      console.log('🔍 Pedido:', order.orderId, '| serviceType:', order.serviceType, '| status:', order.status);
+                      return null;
+                    })()}
+                    
                     {/* Mostrar información específica para MOTOCICLETA antes de aceptar */}
-                    {order.serviceType === 'MOTORCYCLE_TAXI' && order.status === OrderStatus.MANUAL_ASSIGNED && !order.assignedToDeliveryId ? (
+                    {order.serviceType === 'MOTORCYCLE_TAXI' && (order.status === OrderStatus.MANUAL_ASSIGNED || order.status === OrderStatus.PENDING) && !order.assignedToDeliveryId ? (
                       <>
                         {/* Información básica para Motocicleta - ANTES DE ACEPTAR */}
                         <div style={{ marginBottom: '8px', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', border: '2px solid #3b82f6' }}>
