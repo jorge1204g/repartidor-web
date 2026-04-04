@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eliminar Pedido Huérfano</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #dc2626;
+            margin-bottom: 10px;
+        }
+        .warning {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #d1d5db;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: bold;
+        }
+        .btn-delete {
+            background-color: #dc2626;
+            color: white;
+        }
+        .btn-delete:hover {
+            background-color: #b91c1c;
+        }
+        .btn-check {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .btn-check:hover {
+            background-color: #2563eb;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background-color: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .status.error {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        .info {
+            background-color: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        code {
+            background-color: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Eliminar Pedido Huérfano</h1>
+        
+        <div class="warning">
+            <strong>⚠️ ADVERTENCIA:</strong> Esta acción es irreversible. 
+            Solo usa esta herramienta si un pedido fue eliminado del administrador 
+            pero sigue apareciendo en la app del cliente.
+        </div>
+
+        <div class="info">
+            <strong>📋 Instrucciones:</strong>
+            <ol>
+                <li>Ingresa el ID del pedido (ejemplo: <code>1775115666109</code>)</li>
+                <li>Haz clic en "Verificar Estado"</li>
+                <li>Revisa los resultados</li>
+                <li>Si existe en client_orders, elimínalo</li>
+            </ol>
+        </div>
+
+        <label for="orderId"><strong>ID del Pedido:</strong></label>
+        <input type="text" id="orderId" placeholder="Ejemplo: 1775115666109" value="1775115666109">
+        
+        <div style="margin-top: 15px;">
+            <button class="btn-check" onclick="checkOrder()">🔍 Verificar Estado</button>
+            <button class="btn-delete" onclick="deleteOrder()">🗑️ Eliminar Pedido</button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="info" style="margin-top: 30px;">
+            <strong>🔗 Enlaces útiles:</strong>
+            <ul>
+                <li><a href="https://proyecto-new-37f18-default-rtdb.firebaseio.com/client_orders" target="_blank">Ver client_orders en Firebase</a></li>
+                <li><a href="https://proyecto-new-37f18-default-rtdb.firebaseio.com/orders" target="_blank">Ver orders en Firebase</a></li>
+                <li><a href="https://cliente-web-mu.vercel.app/seguimiento-motocicleta/1775115666109" target="_blank">Ver seguimiento del pedido</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqHxR8xJzN9K7vL3mP2qW5tY6uI8oP0aS",
+            authDomain: "proyecto-new-37f18.firebaseapp.com",
+            databaseURL: "https://proyecto-new-37f18-default-rtdb.firebaseio.com",
+            projectId: "proyecto-new-37f18",
+            storageBucket: "proyecto-new-37f18.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef123456"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        window.checkOrder = async function() {
+            const orderId = document.getElementById('orderId').value.trim();
+            const statusDiv = document.getElementById('status');
+            
+            if (!orderId) {
+                showStatus('❌ Por favor ingresa un ID de pedido', 'error');
+                return;
+            }
+
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status';
+            statusDiv.innerHTML = '🔍 Verificando...';
+
+            try {
+                // Verificar en orders
+                const ordersRef = ref(database, `orders/${orderId}`);
+                const ordersSnapshot = await get(ordersRef);
+                const existsInOrders = ordersSnapshot.exists();
+
+                // Verificar en client_orders
+                const clientOrdersRef = ref(database, `client_orders/${orderId}`);
+                const clientOrdersSnapshot = await get(clientOrdersRef);
+                const existsInClientOrders = clientOrdersSnapshot.exists();
+
+                let html = '<h3>📊 Resultado de la verificación:</h3>';
+                html += `<p><strong>orders/${orderId}:</strong> ${existsInOrders ? '✅ EXISTE' : '❌ NO existe'}</p>`;
+                html += `<p><strong>client_orders/${orderId}:</strong> ${existsInClientOrders ? '✅ EXISTE' : '❌ NO existe'}</p>`;
+                
+                if (!existsInOrders && existsInClientOrders) {
+                    html += '<p style="color: #dc2626; font-weight: bold;">⚠️ PEDIDO HUÉRFANO DETECTADO</p>';
+                    html += '<p>El pedido fue eliminado de orders pero permanece en client_orders.</p>';
+                    html += '<p style="color: #2563eb;"><strong>💡 Recomendación: Haz clic en "Eliminar Pedido" para limpiarlo.</strong></p>';
+                } else if (existsInOrders && existsInClientOrders) {
+                    html += '<p style="color: #f59e0b;">ℹ️ El pedido existe en AMBAS colecciones (estado normal)</p>';
+                } else {
+                    html += '<p style="color: #10b981;">✅ El pedido ya no existe o está completamente eliminado</p>';
+                }
+
+                statusDiv.innerHTML = html;
+                statusDiv.className = 'status success';
+
+            } catch (error) {
+                showStatus(`❌ Error al verificar: ${error.message}`, 'error');
+            }
+        };
+
+        window.deleteOrder = async function() {
+            const orderId = document.getElementById('orderId').value.trim();
+            const statusDiv = document.getElementById('status');
+            
+            if (!orderId) {
+                showStatus('❌ Por favor ingresa un ID de pedido', 'error');
+                return;
+            }
+
+            const confirm = window.confirm(`⚠️ ¿Estás seguro de eliminar el pedido ${orderId}?\n\nEsta acción NO se puede deshacer.`);
+            if (!confirm) return;
+
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'status';
+            statusDiv.innerHTML = '🗑️ Eliminando...';
+
+            try {
+                // Eliminar de orders
+                const ordersRef = ref(database, `orders/${orderId}`);
+                await set(ordersRef, null);
+                console.log('✅ Eliminado de orders');
+
+                // Eliminar de client_orders
+                const clientOrdersRef = ref(database, `client_orders/${orderId}`);
+                await set(clientOrdersRef, null);
+                console.log('✅ Eliminado de client_orders');
+
+                showStatus('✅ ¡Pedido eliminado exitosamente de AMBAS colecciones!', 'success');
+                
+                // Mostrar enlace para recargar
+                setTimeout(() => {
+                    const reloadLink = document.createElement('p');
+                    reloadLink.innerHTML = '<a href="https://cliente-web-mu.vercel.app/mis-pedidos" target="_blank">🔄 Recargar página de Mis Pedidos</a>';
+                    statusDiv.appendChild(reloadLink);
+                }, 1000);
+
+            } catch (error) {
+                showStatus(`❌ Error al eliminar: ${error.message}`, 'error');
+            }
+        };
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+    </script>
+</body>
+</html>

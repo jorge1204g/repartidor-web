@@ -20,6 +20,7 @@ import kotlinx.coroutines.tasks.await
 class OrderRepository {
     private val database = FirebaseDatabase.getInstance()
     private val ordersRef = database.getReference("orders")
+    private val clientOrdersRef = database.getReference("client_orders")
     private val deliveryPersonsRef = database.getReference("delivery_persons")
     private val clientsRef = database.getReference("clients")
     private val restaurantsRef = database.getReference("restaurants")
@@ -111,7 +112,7 @@ class OrderRepository {
     private suspend fun sendOrderCreatedNotificationForAll(orderId: String) {
         try {
             val orderSnapshot = ordersRef.child(orderId).get().await()
-            val order = orderSnapshot.getValue(Order::class.java)
+            val order = Order.fromSnapshot(orderSnapshot)
             order?.let {
                 notificationSender.sendNewOrderNotification(it)
             }
@@ -241,7 +242,7 @@ class OrderRepository {
         return try {
             // Primero obtener el pedido para tener acceso a la información del cliente
             val orderSnapshot = ordersRef.child(orderId).get().await()
-            val order = orderSnapshot.getValue(Order::class.java)
+            val order = Order.fromSnapshot(orderSnapshot)
             
             // Actualizar el estado
             ordersRef.child(orderId).child("status").setValue(status.name).await()
@@ -254,9 +255,19 @@ class OrderRepository {
     
     suspend fun deleteOrder(orderId: String): Result<Unit> {
         return try {
-            ordersRef.child(orderId).removeValue().await()
+            println("🗑️ [ELIMINAR] Iniciando eliminación del pedido: $orderId")
+            
+            // Eliminar de AMBAS colecciones (orders y client_orders)
+            val ordersTask = ordersRef.child(orderId).removeValue().await()
+            println("✅ [ELIMINAR] Pedido eliminado de orders")
+            
+            val clientOrdersTask = clientOrdersRef.child(orderId).removeValue().await()
+            println("✅ [ELIMINAR] Pedido eliminado de client_orders")
+            
+            println("✅ [ELIMINAR] Pedido eliminado exitosamente de ambas colecciones")
             Result.success(Unit)
         } catch (e: Exception) {
+            println("❌ [ELIMINAR] Error eliminando pedido: ${e.message}")
             Result.failure(e)
         }
     }
@@ -279,7 +290,7 @@ class OrderRepository {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val orders = snapshot.children.mapNotNull { 
-                    it.getValue(Order::class.java) 
+                    Order.fromSnapshot(it)
                 }
                 trySend(orders)
             }
@@ -300,7 +311,7 @@ class OrderRepository {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val orders = snapshot.children.mapNotNull { 
-                    it.getValue(Order::class.java) 
+                    Order.fromSnapshot(it)
                 }.filter { it.assignedToDeliveryId == deliveryId }
                 trySend(orders)
             }
@@ -310,7 +321,7 @@ class OrderRepository {
             }
         }
         
-        ordersRef.addValueEventListener(listener)
+        ordersRef.orderByChild("assignedToDeliveryId").equalTo(deliveryId).addValueEventListener(listener)
         
         awaitClose {
             ordersRef.removeEventListener(listener)
@@ -498,7 +509,7 @@ class OrderRepository {
     suspend fun getOrderById(orderId: String): Order? {
         return try {
             val orderSnapshot = ordersRef.child(orderId).get().await()
-            orderSnapshot.getValue(Order::class.java)
+            Order.fromSnapshot(orderSnapshot)
         } catch (e: Exception) {
             null
         }
@@ -530,6 +541,10 @@ class OrderRepository {
             OrderStatus.ON_THE_WAY_TO_CUSTOMER -> "Repartidor en camino a tu ubicación"
             OrderStatus.DELIVERED -> "Pedido entregado"
             OrderStatus.CANCELLED -> "Pedido cancelado"
+            // Estados específicos para motocicleta
+            OrderStatus.ON_THE_WAY_TO_PICKUP -> "Repartidor en camino por el pasajero"
+            OrderStatus.ARRIVED_AT_PICKUP -> "Repartidor llegó por el pasajero"
+            OrderStatus.ON_THE_WAY_TO_DESTINATION -> "En camino al destino"
         }
     }
     

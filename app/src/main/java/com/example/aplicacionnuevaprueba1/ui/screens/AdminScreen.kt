@@ -65,6 +65,10 @@ fun OrderStatus.toSpanish(): String {
         OrderStatus.ON_THE_WAY_TO_CUSTOMER -> "En Camino al Cliente"
         OrderStatus.DELIVERED -> "Entregado"
         OrderStatus.CANCELLED -> "Cancelado"
+        // Estados específicos para motocicleta
+        OrderStatus.ON_THE_WAY_TO_PICKUP -> "En Camino por el Pasajero"
+        OrderStatus.ARRIVED_AT_PICKUP -> "Repartidor Llegó"
+        OrderStatus.ON_THE_WAY_TO_DESTINATION -> "En Camino al Destino"
     }
 }
 
@@ -335,6 +339,10 @@ fun OrderCard(
                     OrderStatus.ON_THE_WAY_TO_CUSTOMER -> MaterialTheme.colorScheme.tertiary
                     OrderStatus.DELIVERED -> MaterialTheme.colorScheme.secondary
                     OrderStatus.CANCELLED -> MaterialTheme.colorScheme.outline
+                    // Estados específicos para motocicleta
+                    OrderStatus.ON_THE_WAY_TO_PICKUP -> MaterialTheme.colorScheme.primary
+                    OrderStatus.ARRIVED_AT_PICKUP -> MaterialTheme.colorScheme.primary
+                    OrderStatus.ON_THE_WAY_TO_DESTINATION -> MaterialTheme.colorScheme.tertiary
                 }
             )
             
@@ -1101,12 +1109,28 @@ fun CreateOrderScreen(viewModel: AdminViewModel) {
         }
         
         item {
-            OutlinedTextField(
-                value = profit,
-                onValueChange = { profit = it },
-                label = { Text("Ganancia del pedido") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column {
+                OutlinedTextField(
+                    value = profit,
+                    onValueChange = { profit = it },
+                    label = { Text("Ganancia del pedido") },
+                    placeholder = { Text("Ej: 45 para 2.99 km, 50 para 3-4 km") },
+                    supportingText = { 
+                        Text(
+                            "⚠️ IMPORTANTE: Ingresa la ganancia REAL según la tarifa del servicio de motocicleta",
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "💡 Tarifas sugeridas: 0-1km=$30 | 1-2km=$35 | 2-2.5km=$40 | 2.5-3km=$45 | +3km=$60",
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
         
         item {
@@ -1170,7 +1194,7 @@ fun CreateOrderScreen(viewModel: AdminViewModel) {
                     productName = "3 Gorditas, 1 de Mole con queso, 1 de deshebrada con queso, 1 de Nopalitos con Huevo"
                     productQuantity = "3"
                     productPrice = "50"
-                    profit = "50"
+                    profit = "" // ⚠️ DEJAR VACÍO - El administrador debe ingresar la ganancia REAL del pedido
                     deliveryAddress = "Niño artillero 505 Col Industrial"
                     customerUrl = "https://maps.app.goo.gl/hKRd7FiGdoFiRjBw6"
                     deliveryReferences = "Casa azul portón Negro"
@@ -1225,7 +1249,8 @@ fun CreateOrderScreen(viewModel: AdminViewModel) {
                         deliveryAddress = deliveryAddress,
                         customerUrl = customerUrl,
                         deliveryReferences = deliveryReferences,
-                        customerCode = customerCode
+                        customerCode = customerCode,
+                        serviceType = "MOTORCYCLE_TAXI" // Tipo de servicio para motocicleta
                     )
                     
                     // Limpiar formulario

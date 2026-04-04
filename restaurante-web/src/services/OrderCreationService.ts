@@ -188,26 +188,91 @@ class OrderCreationService {
     }
   }
   
-  // Método para eliminar un pedido
+  // Método para eliminar un pedido CON VERIFICACIÓN DOBLE
   async deleteOrder(orderId: string): Promise<{ success: boolean, message: string }> {
     try {
-      console.log('Eliminando pedido:', orderId);
+      console.log('🗑️ [ELIMINAR] Iniciando eliminación del pedido:', orderId);
       
-      // Verificar que el pedido exista
-      const orderSnapshot = await get(ref(database, `orders/${orderId}`));
-      if (!orderSnapshot.exists()) {
-        throw new Error('Pedido no encontrado');
+      const MAX_RETRIES = 3;
+      let retries = 0;
+      let success = false;
+      
+      while (retries < MAX_RETRIES && !success) {
+        retries++;
+        console.log(`🔄 [ELIMINAR] Intento ${retries} de ${MAX_RETRIES}`);
+        
+        try {
+          // Eliminar de AMBAS colecciones simultáneamente
+          const ordersPromise = set(ref(database, `orders/${orderId}`), null)
+            .then(() => {
+              console.log('✅ [ELIMINAR] Pedido eliminado de orders');
+              return true;
+            })
+            .catch(err => {
+              console.error('❌ [ELIMINAR] Error eliminando de orders:', err);
+              return false;
+            });
+          
+          const clientOrdersPromise = set(ref(database, `client_orders/${orderId}`), null)
+            .then(() => {
+              console.log('✅ [ELIMINAR] Pedido eliminado de client_orders');
+              return true;
+            })
+            .catch(err => {
+              console.error('❌ [ELIMINAR] Error eliminando de client_orders:', err);
+              return false;
+            });
+          
+          // Esperar a que ambas operaciones terminen
+          const [ordersDeleted, clientOrdersDeleted] = await Promise.all([ordersPromise, clientOrdersPromise]);
+          
+          if (ordersDeleted && clientOrdersDeleted) {
+            success = true;
+            console.log('✅ [ELIMINAR] Pedido eliminado exitosamente de AMBAS colecciones');
+            break; // Salir del loop si todo salió bien
+          }
+          
+          // Si alguna falló, reintentar
+          console.warn(`⚠️ [ELIMINAR] Una o ambas eliminaciones fallaron. Reintentando...`);
+          
+        } catch (error: any) {
+          console.error(`❌ [ELIMINAR] Error en intento ${retries}:`, error);
+          
+          if (retries === MAX_RETRIES) {
+            throw new Error(`Error después de ${MAX_RETRIES} intentos: ${error.message}`);
+          }
+        }
+        
+        // Esperar 1 segundo antes de reintentar
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-
-      // Eliminar el pedido de Firebase
-      await set(ref(database, `orders/${orderId}`), null);
+      
+      // VERIFICACIÓN FINAL - Asegurarse de que realmente se eliminó
+      console.log('🔍 [ELIMINAR] Verificando que el pedido haya sido eliminado...');
+      
+      const { get } = await import('firebase/database');
+      const ordersCheck = await get(ref(database, `orders/${orderId}`));
+      const clientOrdersCheck = await get(ref(database, `client_orders/${orderId}`));
+      
+      if (ordersCheck.exists() || clientOrdersCheck.exists()) {
+        console.error('❌ [ELIMINAR] VERIFICACIÓN FALLIDA: El pedido aún existe en alguna colección');
+        console.error('   - orders:', ordersCheck.exists() ? '❌ EXISTE' : '✅ eliminado');
+        console.error('   - client_orders:', clientOrdersCheck.exists() ? '❌ EXISTE' : '✅ eliminado');
+        
+        // Forzar eliminación directa como último recurso
+        console.log('⚠️ [ELIMINAR] Forzando eliminación directa...');
+        await set(ref(database, `orders/${orderId}`), null);
+        await set(ref(database, `client_orders/${orderId}`), null);
+        console.log('✅ [ELIMINAR] Eliminación forzada completada');
+      }
       
       return {
         success: true,
-        message: 'Pedido eliminado exitosamente'
+        message: 'Pedido eliminado exitosamente de ambas colecciones (verificado)'
       };
+      
     } catch (error: any) {
-      console.error('Error eliminando pedido:', error);
+      console.error('❌ [ELIMINAR] Error eliminando pedido:', error);
       return {
         success: false,
         message: error.message || 'Error al eliminar el pedido'

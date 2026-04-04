@@ -589,25 +589,54 @@ fun OrderCard(
                 }
             }
             
-            // Productos
+            // Productos o descripción del servicio
             if (order.items.isNotEmpty()) {
+                // Detectar si es pedido de motocicleta
+                val isMotorcycle = order.serviceType == "MOTORCYCLE_TAXI" || order.distance != null
+                
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "📦 Productos:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50)  // Verde
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    order.items.forEach { item ->
+                    if (isMotorcycle) {
+                        // Para servicio de motocicleta, mostrar la ruta
                         Text(
-                            text = "• ${item.name} x${item.quantity}",
+                            text = "🏍️ Servicio de Motocicleta:",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFF4CAF50),  // Verde
-                            modifier = Modifier.padding(start = 16.dp)
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2196F3)  // Azul
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "  ${order.items[0].name}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                        if (order.distance != null) {
+                            Text(
+                                text = "  Distancia: ${order.distance} km",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF9CA3AF),
+                                modifier = Modifier.padding(start = 24.dp, top = 4.dp)
+                            )
+                        }
+                    } else {
+                        // Para pedidos normales de restaurante, mostrar lista de productos
+                        Text(
+                            text = "📦 Productos:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF4CAF50)  // Verde
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        order.items.forEach { item ->
+                            Text(
+                                text = "• ${item.name} x${item.quantity}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFF4CAF50),  // Verde
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
                     }
                 }
             }

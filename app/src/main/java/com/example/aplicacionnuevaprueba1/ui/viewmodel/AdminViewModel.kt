@@ -237,7 +237,8 @@ class AdminViewModel : ViewModel() {
         deliveryAddress: String = "",
         customerUrl: String = "",
         deliveryReferences: String = "",
-        customerCode: String = ""
+        customerCode: String = "",
+        serviceType: String? = null
     ) {
         viewModelScope.launch {
             val order = Order(
@@ -255,7 +256,8 @@ class AdminViewModel : ViewModel() {
                 deliveryAddress = deliveryAddress,
                 customerUrl = customerUrl,
                 deliveryReferences = deliveryReferences,
-                customerCode = customerCode
+                customerCode = customerCode,
+                serviceType = serviceType
             )
             
             repository.createOrder(order).fold(
@@ -386,6 +388,10 @@ class AdminViewModel : ViewModel() {
                             OrderStatus.ON_THE_WAY_TO_CUSTOMER -> "Repartidor en camino a tu ubicación"
                             OrderStatus.DELIVERED -> "Pedido entregado"
                             OrderStatus.CANCELLED -> "Pedido cancelado"
+                            // Estados específicos para motocicleta
+                            OrderStatus.ON_THE_WAY_TO_PICKUP -> "Repartidor en camino por el pasajero"
+                            OrderStatus.ARRIVED_AT_PICKUP -> "Repartidor llegó por el pasajero"
+                            OrderStatus.ON_THE_WAY_TO_DESTINATION -> "En camino al destino"
                         }
                         whatsappCallback(order.customer.phone, "Estado del pedido #${order.orderId}: ${statusMessage}")
                     }
@@ -404,6 +410,10 @@ class AdminViewModel : ViewModel() {
                             OrderStatus.ON_THE_WAY_TO_CUSTOMER -> "Repartidor en camino a tu ubicación"
                             OrderStatus.DELIVERED -> "Pedido entregado"
                             OrderStatus.CANCELLED -> "Pedido cancelado"
+                            // Estados específicos para motocicleta
+                            OrderStatus.ON_THE_WAY_TO_PICKUP -> "Repartidor en camino por el pasajero"
+                            OrderStatus.ARRIVED_AT_PICKUP -> "Repartidor llegó por el pasajero"
+                            OrderStatus.ON_THE_WAY_TO_DESTINATION -> "En camino al destino"
                         }
                         println("DEBUG: Intentando enviar mensaje de WhatsApp al cliente: ${order.customer.phone}")
                         println("DEBUG: Mensaje: Estado del pedido #${order.orderId}: ${statusMessage}")

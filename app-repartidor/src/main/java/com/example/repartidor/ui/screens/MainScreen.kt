@@ -492,15 +492,52 @@ fun OrderItem(
                 fontWeight = FontWeight.Bold
             )
             
-            // Estado del pedido con color según orderType [#4.5]
-            val stateText = when (order.orderType) {
-                "MANUAL" -> "Creado por Administrador"
-                "RESTAURANT" -> "Asignado por Restaurante"
+            // Estado del pedido con color según orderType y tipo de producto [#4.5]
+            val firstItemName = if (order.items.isNotEmpty()) order.items[0].name else ""
+            
+            // Detectar tipo de pedido por contenido del producto
+            val isMotorcycle = order.serviceType == "MOTORCYCLE_TAXI" || 
+                firstItemName.contains("Motocicleta") || firstItemName.contains("Taxi")
+            val isGasoline = firstItemName.contains("Combustible") || 
+                firstItemName.contains("Gasolina") || firstItemName.contains("Magna") || 
+                firstItemName.contains("Premium") || firstItemName.contains("Diesel")
+            val isStationery = firstItemName.contains("Artículos")
+            val isMedicine = firstItemName.contains("Medicamentos")
+            val isBeerAndCigarettes = firstItemName.contains("Cervezas")
+            val isWaterJugs = firstItemName.contains("Garrafones")
+            val isGasLP = firstItemName.contains("Tanque") || firstItemName.contains("Gas LP") || 
+                firstItemName.contains("Gas")
+            val isServicePayment = firstItemName.contains("Tipo de pago")
+            val isFavorOrGift = firstItemName.contains("Tipo de favor")
+            
+            val stateText = when {
+                isMotorcycle -> "🏍️ Viaje en moto"
+                isGasoline -> "⛽ Pedido de Gasolina"
+                isStationery -> "📝 Pedido de Papelería"
+                isMedicine -> "💊 Pedido de Medicamentos"
+                isBeerAndCigarettes -> "🍺 Pedido de Cerveza y Cigarros"
+                isWaterJugs -> "💧 Pedido de Garrafón de Agua"
+                isGasLP -> "🔥 Pedido de Gas LP"
+                isServicePayment -> "💳 Pago de Servicios"
+                isFavorOrGift -> "🎁 Favor o Regalos"
+                order.orderType == "MANUAL" && order.restaurantName == "Pedido del cliente" -> "🍔 Favor de comida"
+                order.orderType == "MANUAL" -> "👨‍💼 Creado por Administrador"
+                order.orderType == "RESTAURANT" -> "🍔 Favor de comida"
                 else -> translateOrderStatus(order.status)
             }
-            val stateColor = when (order.orderType) {
-                "MANUAL" -> Color(0xFFFF9800) // Naranja
-                "RESTAURANT" -> Color(0xFF9C27B0) // Morado
+            
+            val stateColor = when {
+                isMotorcycle -> Color(0xFFf093fb)
+                isGasoline -> Color(0xFFFF6B35)
+                isStationery -> Color(0xFF4ECDC4)
+                isMedicine -> Color(0xFF95E1D3)
+                isBeerAndCigarettes -> Color(0xFFF38181)
+                isWaterJugs -> Color(0xFF00B4DB)
+                isGasLP -> Color(0xFFFF4500)
+                isServicePayment -> Color(0xFF6C63FF)
+                isFavorOrGift -> Color(0xFFFF69B4)
+                order.orderType == "MANUAL" -> Color(0xFFFF9800)
+                order.orderType == "RESTAURANT" -> Color(0xFF9C27B0)
                 else -> MaterialTheme.colorScheme.primary
             }
             Card(
@@ -531,19 +568,48 @@ fun OrderItem(
                 fontSize = MaterialTheme.typography.bodyLarge.fontSize
             )
             
-            // Productos [#4.3]
+            // Productos o descripción del servicio [#4.3]
             if (order.items.isNotEmpty()) {
-                Text(
-                    text = "[#4.3] Productos:",
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFf093fb)
-                )
-                order.items.forEach { item ->
+                // Detectar si es pedido de motocicleta
+                val isMotorcycle = order.serviceType == "MOTORCYCLE_TAXI" || order.distance != null
+                
+                if (isMotorcycle) {
+                    // Para servicio de motocicleta, mostrar la ruta
                     Text(
-                        text = "  • ${item.name} x${item.quantity} (\$${String.format("%.2f", item.unitPrice)} c/u)",
-                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                        color = Color.White
+                        text = "[#4.3] 🏍️ Servicio de Motocicleta:",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFf093fb)
                     )
+                    // Mostrar primer elemento del array items (contiene la descripción de la ruta)
+                    Text(
+                        text = "  ${order.items[0].name}",
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        color = Color.White,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                    // Mostrar distancia si está disponible
+                    if (order.distance != null) {
+                        Text(
+                            text = "  Distancia: ${order.distance} km",
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                            color = Color(0xFF9CA3AF),
+                            modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                        )
+                    }
+                } else {
+                    // Para pedidos normales de restaurante, mostrar lista de productos
+                    Text(
+                        text = "[#4.3] Productos:",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFf093fb)
+                    )
+                    order.items.forEach { item ->
+                        Text(
+                            text = "  • ${item.name} x${item.quantity} (\$${String.format("%.2f", item.unitPrice)} c/u)",
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                            color = Color.White
+                        )
+                    }
                 }
             }
             
@@ -988,13 +1054,35 @@ fun OrderDetailScreen(
                         }
                         
                         if (order.items.isNotEmpty()) {
-                            Text(
-                                text = "Productos:",
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.White
-                            )
-                            order.items.forEach { item ->
-                                Text("• ${item.name} x${item.quantity} - \$${item.subtotal}", color = Color.White)
+                            // Detectar si es pedido de motocicleta
+                            val isMotorcycle = order.serviceType == "MOTORCYCLE_TAXI" || order.distance != null
+                            
+                            if (isMotorcycle) {
+                                Text(
+                                    text = "🏍️ Servicio de Motocicleta:",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF4CAF50)
+                                )
+                                Text(
+                                    text = "  ${order.items[0].name}",
+                                    color = Color.White
+                                )
+                                if (order.distance != null) {
+                                    Text(
+                                        text = "  Distancia: ${order.distance} km",
+                                        color = Color(0xFF9CA3AF),
+                                        fontSize = MaterialTheme.typography.bodySmall.fontSize
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = "Productos:",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White
+                                )
+                                order.items.forEach { item ->
+                                    Text("• ${item.name} x${item.quantity} - \$${item.subtotal}", color = Color.White)
+                                }
                             }
                         }
                         

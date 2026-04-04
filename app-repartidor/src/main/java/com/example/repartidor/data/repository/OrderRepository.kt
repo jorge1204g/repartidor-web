@@ -20,31 +20,23 @@ class OrderRepository {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val orders = snapshot.children.mapNotNull { 
-                    it.getValue(Order::class.java) 
+                    Order.fromSnapshot(it)
                 }.filter { order ->
-                    // Pedidos asignados al repartidor (incluyendo entregados y pendientes)
+                    // Pedidos asignados al repartidor
                     val isAssignedToDelivery = order.assignedToDeliveryId == deliveryId && 
-                        order.status in listOf("PENDING", "ASSIGNED", "ACCEPTED", "MANUAL_ASSIGNED", 
+                        order.status.uppercase() in listOf("PENDING", "ASSIGNED", "ACCEPTED", "MANUAL_ASSIGNED", 
                                               "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", 
                                               "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER", "DELIVERED",
                                               "ON_THE_WAY_TO_PICKUP", "ARRIVED_AT_PICKUP", 
-                                              "ON_THE_WAY_TO_DESTINATION")
+                                              "WAITING_FOR_DELIVERY")
                     
-                    // Pedidos manuales disponibles para todos los repartidores
-                    val isManualAvailable = order.status == "MANUAL_ASSIGNED" && 
-                        order.assignedToDeliveryId.isEmpty() &&
-                        (order.candidateDeliveryIds.isEmpty() || deliveryId in order.candidateDeliveryIds)
+                    // Pedidos disponibles sin asignar (para que el repartidor pueda aceptar)
+                    val isAvailableOrder = (order.status.uppercase() == "MANUAL_ASSIGNED" || 
+                                           order.status.uppercase() == "ASSIGNED" || 
+                                           order.status.uppercase() == "PENDING") && 
+                                          order.assignedToDeliveryId.isEmpty()
                     
-                    // Pedidos del restaurante disponibles para todos los repartidores
-                    val isRestaurantAvailable = order.status in listOf("PENDING", "ASSIGNED") &&
-                        order.assignedToDeliveryId.isEmpty() &&
-                        (order.candidateDeliveryIds.isEmpty() || deliveryId in order.candidateDeliveryIds)
-                    
-                    // Pedido directamente asignado por tipo
-                    val isDirectAssignment = (order.orderType == "MANUAL" || order.orderType == "RESTAURANT") &&
-                                            order.assignedToDeliveryId == deliveryId
-                    
-                    isAssignedToDelivery || isManualAvailable || isRestaurantAvailable || isDirectAssignment
+                    isAssignedToDelivery || isAvailableOrder
                 }
                 trySend(orders)
             }
