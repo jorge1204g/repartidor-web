@@ -584,6 +584,10 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Pestañas para pedidos activos e historial */}
+      {(() => {
+        console.log('🚀 [DASHBOARD] Versión del código: 2.0 - Dirección del Cliente ACTUALIZADA');
+        return null;
+      })()}
       <div className="tab-container">
         <div style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
           <button
@@ -960,77 +964,44 @@ const Dashboard: React.FC = () => {
                               </button>
                             )}
                             
-                            {/* Botón Dirección del Restaurante - Gradiente Naranja */}
-                            {(order.restaurantMapUrl && order.restaurantMapUrl.trim() !== '') ? (
-                              <button
-                                onClick={() => window.open(order.restaurantMapUrl, '_blank')}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.transform = 'translateY(-2px)';
-                                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.transform = 'translateY(0)';
-                                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 152, 0, 0.3)';
-                                }}
-                                style={{
-                                  padding: '14px 20px',
-                                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '16px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '10px',
-                                  fontSize: '15px',
-                                  fontWeight: '600',
-                                  boxShadow: '0 4px 14px rgba(255, 152, 0, 0.3)',
-                                  transition: 'all 0.3s ease',
-                                  position: 'relative',
-                                  overflow: 'hidden'
-                                }}
-                              >
-                                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#2.3</span>
-                                <span style={{ fontSize: '18px' }}>🏪</span>
-                                <span>Dirección del Restaurante</span>
-                              </button>
-                            ) : null}
-                            
-                            {order.pickupLocationUrl && order.pickupLocationUrl.trim() !== '' && (
-                              <button
-                                onClick={() => window.open(order.pickupLocationUrl, '_blank')}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.transform = 'translateY(-2px)';
-                                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.transform = 'translateY(0)';
-                                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 152, 0, 0.3)';
-                                }}
-                                style={{
-                                  padding: '14px 20px',
-                                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '16px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '10px',
-                                  fontSize: '15px',
-                                  fontWeight: '600',
-                                  boxShadow: '0 4px 14px rgba(255, 152, 0, 0.3)',
-                                  transition: 'all 0.3s ease',
-                                  position: 'relative',
-                                  overflow: 'hidden'
-                                }}
-                              >
-                                <span style={{ fontSize: '18px' }}>🏪</span>
-                                <span>Dirección del Restaurante</span>
-                              </button>
-                            )}
+                            {/* Botón Dirección del Cliente - Gradiente Naranja */}
+                            <button
+                              onClick={() => {
+                                console.log('📍 [BOTÓN] Click en Dirección del Cliente');
+                                const address = encodeURIComponent(order.customer.address || '');
+                                window.open(`https://www.google.com/maps/search/?api=1&query=${address}`, '_blank');
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 152, 0, 0.3)';
+                              }}
+                              style={{
+                                padding: '14px 20px',
+                                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '16px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '10px',
+                                fontSize: '15px',
+                                fontWeight: '600',
+                                boxShadow: '0 4px 14px rgba(255, 152, 0, 0.3)',
+                                transition: 'all 0.3s ease',
+                                position: 'relative',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#2.3</span>
+                              <span style={{ fontSize: '18px' }}>📍</span>
+                              <span>Dirección del Cliente</span>
+                            </button>
                             
                             {/* Botón Copiar Teléfono - Gradiente Violeta */}
                             <button
