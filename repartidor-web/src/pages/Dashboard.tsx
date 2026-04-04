@@ -585,7 +585,7 @@ const Dashboard: React.FC = () => {
 
       {/* Pestañas para pedidos activos e historial */}
       {(() => {
-        console.log('🚀 [DASHBOARD] Versión del código: 2.0 - Dirección del Cliente ACTUALIZADA');
+        console.log('🚀 [DASHBOARD] Versión del código: 3.0 - FORZANDO ACTUALIZACIÓN CACHE');
         return null;
       })()}
       <div className="tab-container">
