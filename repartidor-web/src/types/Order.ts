@@ -46,6 +46,7 @@ export interface Order {
   total: number;
   customerLocation: Location;
   pickupLocationUrl: string;
+  pickupAddress?: string; // Dirección de origen para motocicleta
   deliveryAddress: string;
   customerUrl: string;
   deliveryReferences: string;

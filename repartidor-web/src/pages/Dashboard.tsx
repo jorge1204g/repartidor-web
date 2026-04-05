@@ -522,7 +522,7 @@ const Dashboard: React.FC = () => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-            <span style={{ fontSize: '0.875rem', color: '#FFF', fontWeight: '600' }}>En línea</span>
+            <span style={{ fontSize: '0.875rem', color: '#FFF', fontWeight: '600' }}>Conectado</span>
             <div 
               onClick={handleOnlineToggle}
               className={`toggle-switch ${isOnline ? 'toggle-on' : 'toggle-off'}`}
@@ -756,17 +756,163 @@ const Dashboard: React.FC = () => {
                     {/* Mostrar productos o descripción del servicio */}
                     <div style={{ marginTop: '8px' }}>
                       <strong style={{ fontSize: '14px', color: '#f093fb' }}>[#4.3] {order.serviceType === 'MOTORCYCLE_TAXI' ? '🏍️ Servicio de Motocicleta:' : 'Productos:'}</strong>
-                      {order.serviceType === 'MOTORCYCLE_TAXI' ? (
-                        // Para servicios de motocicleta, mostrar la ruta
-                        <div style={{ fontSize: '13px', color: '#FFF', marginTop: '4px', padding: '8px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px' }}>
-                          {order.items && order.items.length > 0 ? (
-                            <>
-                              {order.items[0].name}
-                              {order.distance && <span style={{ marginLeft: '8px', color: '#9CA3AF' }}>({order.distance} km)</span>}
-                            </>
-                          ) : (
-                            'Servicio de transporte en motocicleta'
-                          )}
+                      
+                      {/* DEBUG: Verificar serviceType y campos */}
+                      {(() => {
+                        console.log('🔍 [#4.3] DEBUG - serviceType:', order.serviceType);
+                        console.log('🔍 [#4.3] DEBUG - items type:', typeof order.items);
+                        console.log('🔍 [#4.3] DEBUG - items:', order.items);
+                        const orderAny = order as any;
+                        console.log('🔍 [#4.3] DEBUG - pickupAddress:', orderAny.pickupAddress);
+                        console.log('🔍 [#4.3] DEBUG - deliveryAddress:', order.deliveryAddress);
+                        return null;
+                      })()}
+                      
+                      {/* Detectar si es motocicleta incluso si serviceType es undefined */}
+                      {(() => {
+                        const orderAny = order as any;
+                        const isMotorcycleByServiceType = order.serviceType === 'MOTORCYCLE_TAXI';
+                        // Fallback: Si tiene 1 item con nombre que contiene "Motocicleta" o "Taxi", o si tiene pickupAddress
+                        const isMotorcycleByItem = order.items.length === 1 && 
+                          (order.items[0].name.toLowerCase().includes('motocicleta') || 
+                           order.items[0].name.toLowerCase().includes('taxi'));
+                        const hasPickupAddress = !!orderAny.pickupAddress;
+                        
+                        const isMotorcycle = isMotorcycleByServiceType || isMotorcycleByItem || hasPickupAddress;
+                        
+                        if (isMotorcycle && !order.serviceType) {
+                          console.log('🏍️ [FALLBACK] Detectado como motocicleta por item o pickupAddress');
+                        }
+                        
+                        return isMotorcycle ? (
+                          // Para servicios de motocicleta, mostrar la ruta con formato mejorado
+                        <div style={{ fontSize: '13px', color: '#FFF', marginTop: '8px', padding: '12px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                          {(() => {
+                            console.log('🏍️ DEBUG items:', typeof order.items, order.items);
+                            // Si items es un string, formatearlo bonito
+                            const itemsStr = order.items as any;
+                            if (typeof itemsStr === 'string') {
+                              const lines = itemsStr.split('\n').filter((line: string) => line.trim());
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  {lines.map((line, idx) => {
+                                    // Detectar el tipo de línea y aplicar estilo apropiado
+                                    if (line.includes('🚩 Origen:')) {
+                                      return (
+                                        <div key={idx} style={{ 
+                                          display: 'flex', 
+                                          alignItems: 'flex-start',
+                                          gap: '8px',
+                                          padding: '6px 8px',
+                                          background: 'rgba(34, 197, 94, 0.1)',
+                                          borderRadius: '6px',
+                                          borderLeft: '3px solid #22c55e'
+                                        }}>
+                                          <span style={{ fontSize: '16px' }}>🚩</span>
+                                          <div>
+                                            <div style={{ fontSize: '11px', color: '#22c55e', fontWeight: '600', marginBottom: '2px' }}>PUNTO DE PARTIDA:</div>
+                                            <div style={{ fontSize: '13px', color: '#FFF' }}>{line.replace('🚩 Origen:', '').trim()}</div>
+                                          </div>
+                                        </div>
+                                      );
+                                    } else if (line.includes('🏁 Destino:')) {
+                                      return (
+                                        <div key={idx} style={{ 
+                                          display: 'flex', 
+                                          alignItems: 'flex-start',
+                                          gap: '8px',
+                                          padding: '6px 8px',
+                                          background: 'rgba(239, 68, 68, 0.1)',
+                                          borderRadius: '6px',
+                                          borderLeft: '3px solid #ef4444'
+                                        }}>
+                                          <span style={{ fontSize: '16px' }}>🏁</span>
+                                          <div>
+                                            <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: '600', marginBottom: '2px' }}>DESTINO:</div>
+                                            <div style={{ fontSize: '13px', color: '#FFF' }}>{line.replace('🏁 Destino:', '').trim()}</div>
+                                          </div>
+                                        </div>
+                                      );
+                                    } else if (line.includes('📝 Descripción:')) {
+                                      return (
+                                        <div key={idx} style={{ 
+                                          padding: '6px 8px',
+                                          background: 'rgba(168, 85, 247, 0.1)',
+                                          borderRadius: '6px',
+                                          borderLeft: '3px solid #a855f7',
+                                          fontSize: '12px',
+                                          color: '#e9d5ff',
+                                          fontStyle: 'italic'
+                                        }}>
+                                          {line.replace('📝 Descripción:', '').trim()}
+                                        </div>
+                                      );
+                                    } else if (line.includes('Servicio de Motocicleta')) {
+                                      return null; // No mostrar esta línea, ya tenemos el título
+                                    } else {
+                                      return (
+                                        <div key={idx} style={{ fontSize: '13px', color: '#FFF', padding: '2px 0' }}>
+                                          {line}
+                                        </div>
+                                      );
+                                    }
+                                  })}
+                                  {order.distance && (
+                                    <div style={{ 
+                                      marginTop: '4px',
+                                      padding: '4px 8px',
+                                      background: 'rgba(59, 130, 246, 0.2)',
+                                      borderRadius: '4px',
+                                      fontSize: '12px',
+                                      color: '#93c5fd',
+                                      textAlign: 'center',
+                                      fontWeight: '600'
+                                    }}>
+                                      📏 Distancia: {order.distance} km
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                            // Si items es un array
+                            if (order.items && order.items.length > 0) {
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  <div style={{ fontSize: '13px', color: '#FFF' }}>
+                                    {order.items[0].name}
+                                    {order.distance && <span style={{ marginLeft: '8px', color: '#9CA3AF' }}>({order.distance} km)</span>}
+                                  </div>
+                                  
+                                  {/* Mostrar dirección de origen si existe */}
+                                  {(order as any).pickupAddress && (
+                                    <div style={{ 
+                                      padding: '8px',
+                                      background: 'rgba(34, 197, 94, 0.1)',
+                                      borderRadius: '6px',
+                                      borderLeft: '3px solid #22c55e'
+                                    }}>
+                                      <div style={{ fontSize: '11px', color: '#22c55e', fontWeight: '600', marginBottom: '2px' }}>🚩 MI UBICACIÓN:</div>
+                                      <div style={{ fontSize: '13px', color: '#FFF' }}>{(order as any).pickupAddress}</div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Mostrar dirección de destino si existe */}
+                                  {order.deliveryAddress && (
+                                    <div style={{ 
+                                      padding: '8px',
+                                      background: 'rgba(239, 68, 68, 0.1)',
+                                      borderRadius: '6px',
+                                      borderLeft: '3px solid #ef4444'
+                                    }}>
+                                      <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: '600', marginBottom: '2px' }}>📍 DESTINO:</div>
+                                      <div style={{ fontSize: '13px', color: '#FFF' }}>{order.deliveryAddress}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                            return 'Servicio de transporte en motocicleta';
+                          })()}
                         </div>
                       ) : (
                         // Para pedidos normales de restaurante, mostrar lista de productos
@@ -777,7 +923,8 @@ const Dashboard: React.FC = () => {
                             </li>
                           ))}
                         </ul>
-                      )}
+                      );
+                      })()}
                     </div>
                     
                     {/* DEBUG: Ver serviceType en consola */}
@@ -793,16 +940,67 @@ const Dashboard: React.FC = () => {
                         <div style={{ marginBottom: '8px', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', border: '2px solid #3b82f6' }}>
                           <div style={{ color: '#bfdbfe', fontSize: '12px', marginBottom: '8px', fontWeight: '700' }}>🏍️ SERVICIO DE MOTOCICLETA - Pasajero</div>
                           
-                          {/* Punto de Partida */}
-                          <div style={{ marginBottom: '12px' }}>
-                            <p style={{ margin: '4px 0', fontSize: '13px', color: '#FFF', fontWeight: '600' }}>
-                              <span style={{ color: '#60a5fa', marginRight: '4px' }}>🏁</span> 
-                              DESTINO:
-                            </p>
-                            <p style={{ margin: '4px 0', fontSize: '14px', color: '#e5e7eb' }}>
-                              {order.deliveryAddress || 'Por definir'}
-                            </p>
-                          </div>
+                          {/* Mostrar direcciones desde items si tiene el formato correcto */}
+                          {typeof order.items === 'string' && order.items.includes('🚩 Origen:') ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {order.items.split('\n').filter(line => line.trim()).map((line, idx) => {
+                                if (line.includes('🚩 Origen:')) {
+                                  return (
+                                    <div key={idx} style={{ 
+                                      padding: '8px',
+                                      background: 'rgba(34, 197, 94, 0.1)',
+                                      borderRadius: '8px',
+                                      borderLeft: '3px solid #22c55e'
+                                    }}>
+                                      <div style={{ fontSize: '11px', color: '#22c55e', fontWeight: '600', marginBottom: '4px' }}>🚩 PUNTO DE PARTIDA:</div>
+                                      <div style={{ fontSize: '13px', color: '#FFF' }}>{line.replace('🚩 Origen:', '').trim()}</div>
+                                    </div>
+                                  );
+                                } else if (line.includes('🏁 Destino:')) {
+                                  return (
+                                    <div key={idx} style={{ 
+                                      padding: '8px',
+                                      background: 'rgba(239, 68, 68, 0.1)',
+                                      borderRadius: '8px',
+                                      borderLeft: '3px solid #ef4444'
+                                    }}>
+                                      <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: '600', marginBottom: '4px' }}>🏁 DESTINO:</div>
+                                      <div style={{ fontSize: '13px', color: '#FFF' }}>{line.replace('🏁 Destino:', '').trim()}</div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })}
+                            </div>
+                          ) : (
+                            // Fallback para pedidos antiguos sin formato correcto
+                            <>
+                              {/* Punto de Partida */}
+                              <div style={{ marginBottom: '12px' }}>
+                                <p style={{ margin: '4px 0', fontSize: '13px', color: '#FFF', fontWeight: '600' }}>
+                                  <span style={{ color: '#60a5fa', marginRight: '4px' }}>🚩</span> 
+                                  PUNTO DE PARTIDA:
+                                </p>
+                                <p style={{ margin: '4px 0', fontSize: '14px', color: '#e5e7eb' }}>
+                                  {(() => {
+                                    const orderAny = order as any;
+                                    return orderAny.pickupAddress || orderAny.clientAddress || order.pickupLocationUrl || 'Por definir';
+                                  })()}
+                                </p>
+                              </div>
+                              
+                              {/* Destino */}
+                              <div style={{ marginBottom: '12px' }}>
+                                <p style={{ margin: '4px 0', fontSize: '13px', color: '#FFF', fontWeight: '600' }}>
+                                  <span style={{ color: '#ef4444', marginRight: '4px' }}>🏁</span> 
+                                  DESTINO:
+                                </p>
+                                <p style={{ margin: '4px 0', fontSize: '14px', color: '#e5e7eb' }}>
+                                  {order.deliveryAddress || 'Por definir'}
+                                </p>
+                              </div>
+                            </>
+                          )}
                           
                           {/* Botón Llamar al Cliente - Gradiente Azul */}
                           <button
@@ -838,24 +1036,43 @@ const Dashboard: React.FC = () => {
                             <span>Llamar al Cliente</span>
                           </button>
                           
-                          {/* Botón Copiar Teléfono */}
+                          {/* Botón Dirección del Cliente - Abre Google Maps */}
                           <button
                             onClick={() => {
-                              navigator.clipboard.writeText(order.customer.phone);
-                              alert('✅ Número copiado: ' + order.customer.phone);
+                              // Extraer dirección de origen desde items o usar pickupLocationUrl
+                              let pickupAddress = '';
+                              
+                              if (typeof order.items === 'string') {
+                                const origenMatch = order.items.match(/🚩 Origen:\s*(.*)/);
+                                if (origenMatch && origenMatch[1]) {
+                                  pickupAddress = origenMatch[1].trim();
+                                }
+                              }
+                              
+                              // Si no se encontró en items, usar pickupLocationUrl
+                              if (!pickupAddress) {
+                                pickupAddress = order.pickupLocationUrl || '';
+                              }
+                              
+                              if (pickupAddress && pickupAddress.startsWith('http')) {
+                                window.open(pickupAddress, '_blank');
+                              } else if (pickupAddress) {
+                                const address = encodeURIComponent(pickupAddress);
+                                window.open(`https://www.google.com/maps/search/?api=1&query=${address}`, '_blank');
+                              }
                             }}
                             onMouseEnter={(e) => {
                               e.currentTarget.style.transform = 'translateY(-2px)';
-                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(147, 51, 234, 0.4)';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = '0 4px 14px rgba(147, 51, 234, 0.3)';
+                              e.currentTarget.style.boxShadow = '0 4px 14px rgba(33, 150, 243, 0.3)';
                             }}
                             style={{
                               width: '100%',
                               padding: '14px 20px',
-                              background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+                              background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
                               color: 'white',
                               border: 'none',
                               borderRadius: '16px',
@@ -866,13 +1083,61 @@ const Dashboard: React.FC = () => {
                               gap: '10px',
                               fontSize: '15px',
                               fontWeight: '600',
-                              boxShadow: '0 4px 14px rgba(147, 51, 234, 0.3)',
+                              boxShadow: '0 4px 14px rgba(33, 150, 243, 0.3)',
                               transition: 'all 0.3s ease',
                               marginTop: '8px'
                             }}
                           >
+                            <span style={{ fontSize: '18px' }}>📍</span>
+                            <span>Direccion de recolecion del cliente</span>
+                          </button>
+                          
+                          {/* Botón Destino del cliente */}
+                          <button
+                            onClick={() => {
+                              // Abrir Google Maps con el destino del cliente
+                              const customerUrl = order.customerUrl || '';
+                              if (customerUrl && customerUrl.startsWith('http')) {
+                                window.open(customerUrl, '_blank');
+                              } else {
+                                const address = encodeURIComponent(order.deliveryAddress || '');
+                                if (address) {
+                                  window.open(`https://www.google.com/maps/search/?api=1&query=${address}`, '_blank');
+                                }
+                              }
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(156, 39, 176, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 4px 14px rgba(156, 39, 176, 0.3)';
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '14px 20px',
+                              background: 'linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '16px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '10px',
+                              fontSize: '15px',
+                              fontWeight: '600',
+                              boxShadow: '0 4px 14px rgba(156, 39, 176, 0.3)',
+                              transition: 'all 0.3s ease',
+                              position: 'relative',
+                              overflow: 'hidden',
+                              marginTop: '8px'
+                            }}
+                          >
+                            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#2.4</span>
                             <span style={{ fontSize: '18px' }}>📋</span>
-                            <span>Copiar Número de Teléfono</span>
+                            <span>Destino del cliente</span>
                           </button>
                         </div>
                       </>
@@ -883,7 +1148,65 @@ const Dashboard: React.FC = () => {
                       <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong style={{ color: '#f093fb' }}>[#1.1]</strong> Restaurante: {order.restaurantName}</p>
                       <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong style={{ color: '#f093fb' }}>[#1.2]</strong> Cliente: {order.customer.name}</p>
                       <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong style={{ color: '#f093fb' }}>[#1.3]</strong> Teléfono: {order.customer.phone}</p>
-                      <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong style={{ color: '#f093fb' }}>[#1.4]</strong> Dirección: {order.deliveryAddress}</p>
+                      
+                      {/* Para Motocicleta: Mostrar direcciones claramente */}
+                      {order.serviceType === 'MOTORCYCLE_TAXI' ? (
+                        <>
+                          {/* Dirección de Origen/Pickup */}
+                          {(() => {
+                            const orderAny = order as any;
+                            let pickupAddress = '';
+                            
+                            // Intentar extraer desde items si es string
+                            if (typeof order.items === 'string') {
+                              const origenMatch = order.items.match(/🚩 Origen:\s*(.*)/);
+                              if (origenMatch && origenMatch[1]) {
+                                pickupAddress = origenMatch[1].trim();
+                              }
+                            }
+                            
+                            // Si no se encontró, usar pickupAddress o campos alternativos
+                            if (!pickupAddress) {
+                              pickupAddress = orderAny.pickupAddress || orderAny.clientAddress || order.customer?.address || '';
+                            }
+                            
+                            return pickupAddress ? (
+                              <div style={{ margin: '8px 0', padding: '10px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '8px', borderLeft: '3px solid #22c55e' }}>
+                                <p style={{ margin: '0', fontSize: '12px', color: '#22c55e', fontWeight: '600' }}>🚩 MI UBICACIÓN:</p>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#FFF' }}>{pickupAddress}</p>
+                              </div>
+                            ) : null;
+                          })()}
+                          
+                          {/* Dirección de Destino */}
+                          {(() => {
+                            let destinationAddress = '';
+                            
+                            // Intentar extraer desde items si es string
+                            if (typeof order.items === 'string') {
+                              const destinoMatch = order.items.match(/🏁 Destino:\s*(.*)/);
+                              if (destinoMatch && destinoMatch[1]) {
+                                destinationAddress = destinoMatch[1].trim();
+                              }
+                            }
+                            
+                            // Si no se encontró, usar deliveryAddress
+                            if (!destinationAddress) {
+                              destinationAddress = order.deliveryAddress || '';
+                            }
+                            
+                            return destinationAddress ? (
+                              <div style={{ margin: '8px 0', padding: '10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', borderLeft: '3px solid #ef4444' }}>
+                                <p style={{ margin: '0', fontSize: '12px', color: '#ef4444', fontWeight: '600' }}>📍 DESTINO:</p>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#FFF' }}>{destinationAddress}</p>
+                              </div>
+                            ) : null;
+                          })()}
+                        </>
+                      ) : (
+                        // Para pedidos normales de restaurante
+                        <p style={{ margin: '4px 0', fontSize: '14px', color: '#FFF' }}><strong style={{ color: '#f093fb' }}>[#1.4]</strong> Dirección: {order.deliveryAddress}</p>
+                      )}
                     </div>
                         
                         {/* Botones adicionales después de aceptar el pedido */}
@@ -964,12 +1287,39 @@ const Dashboard: React.FC = () => {
                               </button>
                             )}
                             
-                            {/* Botón Dirección del Cliente - Gradiente Naranja */}
+                            {/* Botón Direccion de recolecion del cliente - Gradiente Naranja */}
                             <button
-                              onClick={() => {
-                                console.log('📍 [BOTÓN] Click en Dirección del Cliente');
-                                const address = encodeURIComponent(order.customer.address || '');
-                                window.open(`https://www.google.com/maps/search/?api=1&query=${address}`, '_blank');
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log('📍 [BOTÓN] Click en Direccion de recolecion del cliente');
+                                
+                                // Acceder a pickupAddress y clientAddress usando index signature
+                                const orderAny = order as any;
+                                
+                                console.log('📍 === DEBUG COMPLETO DEL PEDIDO ===');
+                                console.log('📍 order.id:', order.id);
+                                console.log('📍 order.orderId:', order.orderId);
+                                console.log('📍 order.pickupAddress:', orderAny.pickupAddress);
+                                console.log('📍 order.clientAddress:', orderAny.clientAddress);
+                                console.log('📍 order.customer.address:', order.customer?.address);
+                                console.log('📍 order.pickupLocationUrl:', order.pickupLocationUrl);
+                                console.log('📍 order.deliveryAddress:', order.deliveryAddress);
+                                console.log('📍 order.items:', order.items);
+                                
+                                const pickupAddress = orderAny.pickupAddress || orderAny.clientAddress || order.customer?.address || '';
+                                
+                                console.log('📍 Dirección final seleccionada:', pickupAddress);
+                                
+                                if (pickupAddress && pickupAddress.trim() !== '') {
+                                  const encoded = encodeURIComponent(pickupAddress);
+                                  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+                                  console.log('📍 Abriendo Google Maps:', mapsUrl);
+                                  window.open(mapsUrl, '_blank');
+                                } else {
+                                  console.warn('⚠️ No hay dirección de recogida disponible');
+                                  alert('No hay dirección de recogida disponible.\n\nDirecciones disponibles:\n- pickupAddress: ' + (orderAny.pickupAddress || 'VACÍO') + '\n- clientAddress: ' + (orderAny.clientAddress || 'VACÍO') + '\n- customer.address: ' + (order.customer?.address || 'VACÍO'));
+                                }
                               }}
                               onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = 'translateY(-2px)';
@@ -999,35 +1349,71 @@ const Dashboard: React.FC = () => {
                               }}
                             >
                               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#2.3</span>
-                              <span style={{ fontSize: '18px' }}>📍</span>
-                              <span>Dirección del Cliente</span>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px', width: '100%' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '18px' }}>🚩</span>
+                                  <span style={{ fontWeight: '700' }}>Origen:</span>
+                                </div>
+                                {(() => {
+                                  const orderAny = order as any;
+                                  let address = '';
+                                  
+                                  // Primero intentar extraer desde items si tiene el formato correcto
+                                  if (typeof order.items === 'string') {
+                                    const origenMatch = order.items.match(/🚩 Origen:\s*(.*)/);
+                                    if (origenMatch && origenMatch[1]) {
+                                      address = origenMatch[1].trim();
+                                    }
+                                  }
+                                  
+                                  // Si no se encontró en items, usar los campos tradicionales
+                                  if (!address) {
+                                    address = orderAny.pickupAddress || orderAny.clientAddress || order.customer?.address || '';
+                                  }
+                                  
+                                  // DEBUG: Mostrar qué dirección se está usando
+                                  console.log('🚩 [BOTÓN #2.3] Extrayendo de items:', typeof order.items === 'string' ? order.items.substring(0, 100) : 'NO STRING');
+                                  console.log('🚩 [BOTÓN #2.3] pickupAddress:', orderAny.pickupAddress);
+                                  console.log('🚩 [BOTÓN #2.3] clientAddress:', orderAny.clientAddress);
+                                  console.log('🚩 [BOTÓN #2.3] customer.address:', order.customer?.address);
+                                  console.log('🚩 [BOTÓN #2.3] Dirección final seleccionada:', address);
+                                  
+                                  return address ? (
+                                    <span style={{ fontSize: '11px', opacity: 0.9, marginLeft: '26px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                                      {address}
+                                    </span>
+                                  ) : null;
+                                })()}
+                              </div>
                             </button>
                             
-                            {/* Botón Copiar Teléfono - Gradiente Violeta */}
+                            {/* Botón Destino del cliente - Gradiente Violeta */}
                             <button
                               onClick={() => {
-                                navigator.clipboard.writeText(order.customer.phone);
-                                // Mostrar notificación más elegante
-                                const notification = document.createElement('div');
-                                notification.style.cssText = `
-                                  position: fixed;
-                                  top: 20px;
-                                  right: 20px;
-                                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                  color: white;
-                                  padding: 16px 24px;
-                                  border-radius: 12px;
-                                  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-                                  z-index: 10000;
-                                  animation: slideIn 0.3s ease;
-                                  font-weight: 600;
-                                `;
-                                notification.innerHTML = '✅ ¡Teléfono copiado!';
-                                document.body.appendChild(notification);
-                                setTimeout(() => {
-                                  notification.style.animation = 'slideOut 0.3s ease';
-                                  setTimeout(() => notification.remove(), 300);
-                                }, 2000);
+                                // Extraer dirección de destino del items[0].name o usar deliveryAddress
+                                const itemDescription = order.items && order.items.length > 0 ? order.items[0].name : '';
+                                let destinationAddress = '';
+                                
+                                // Buscar el texto después de "Destino:"
+                                const destinoMatch = itemDescription.match(/🏁 Destino:\s*(.*)/);
+                                if (destinoMatch && destinoMatch[1]) {
+                                  destinationAddress = destinoMatch[1].trim();
+                                }
+                                
+                                // Si no se encontró en items, usar customerUrl o deliveryAddress
+                                if (!destinationAddress) {
+                                  const customerUrl = order.customerUrl || '';
+                                  if (customerUrl && customerUrl.startsWith('http')) {
+                                    window.open(customerUrl, '_blank');
+                                    return;
+                                  }
+                                  destinationAddress = order.deliveryAddress || '';
+                                }
+                                
+                                if (destinationAddress) {
+                                  const encoded = encodeURIComponent(destinationAddress);
+                                  window.open(`https://www.google.com/maps/search/?api=1&query=${encoded}`, '_blank');
+                                }
                               }}
                               onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = 'translateY(-2px)';
@@ -1057,8 +1443,31 @@ const Dashboard: React.FC = () => {
                               }}
                             >
                               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px' }}>#2.4</span>
-                              <span style={{ fontSize: '18px' }}>📋</span>
-                              <span>Copiar Número de Teléfono</span>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px', width: '100%' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '18px' }}>🏁</span>
+                                  <span style={{ fontWeight: '700' }}>Destino:</span>
+                                </div>
+                                {(() => {
+                                  // Extraer dirección de destino del items o usar deliveryAddress
+                                  const orderAny = order as any;
+                                  let destinationAddress = order.deliveryAddress || '';
+                                  
+                                  // Si items es un string, extraer el destino
+                                  if (typeof order.items === 'string') {
+                                    const destinoMatch = order.items.match(/🏁 Destino:\s*(.*)/);
+                                    if (destinoMatch && destinoMatch[1]) {
+                                      destinationAddress = destinoMatch[1].trim();
+                                    }
+                                  }
+                                  
+                                  return destinationAddress ? (
+                                    <span style={{ fontSize: '11px', opacity: 0.9, marginLeft: '26px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                                      {destinationAddress}
+                                    </span>
+                                  ) : null;
+                                })()}
+                              </div>
                             </button>
                           </div>
                         )}
@@ -1230,8 +1639,282 @@ const Dashboard: React.FC = () => {
                         order.status === OrderStatus.PICKING_UP_ORDER || 
                         order.status === OrderStatus.ON_THE_WAY_TO_CUSTOMER) && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {/* Botón En camino al restaurante (solo si está ACCEPTED) */}
-                          {order.status === OrderStatus.ACCEPTED && (
+                          {/* 🏍️ BOTONES ESPECIALES PARA MOTOCICLETA - Solo cuando está ACEPTADO */}
+                          {(() => {
+                            const isMoto = order.serviceType === 'MOTORCYCLE_TAXI' || order.distance !== undefined;
+                            console.log('🔍 Verificando pedido:', {
+                              id: order.id,
+                              status: order.status,
+                              serviceType: order.serviceType,
+                              distance: order.distance,
+                              deliveryAddress: order.deliveryAddress,
+                              customerPhone: (order as any).customerPhone,
+                              isAccepted: order.status === OrderStatus.ACCEPTED,
+                              isMoto: isMoto,
+                              shouldShow: order.status === OrderStatus.ACCEPTED && isMoto,
+                              allKeys: Object.keys(order)
+                            });
+                            return order.status === OrderStatus.ACCEPTED && isMoto;
+                          })() && (
+                            <>
+                              {console.log('🏍️ Renderizando botones de motocicleta para pedido:', order.id)}
+                              <div style={{ 
+                              display: 'grid', 
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                              gap: '10px',
+                              marginBottom: '8px'
+                            }}>
+                              {/* Botón Llamar al Cliente */}
+                              <button
+                                onClick={() => {
+                                  if (order.customerPhone) {
+                                    window.open(`tel:${order.customerPhone}`, '_self');
+                                  }
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
+                                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(76, 175, 80, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0)';
+                                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(76, 175, 80, 0.3)';
+                                }}
+                                style={{
+                                  padding: '14px 18px',
+                                  background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '12px',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: '700',
+                                  boxShadow: '0 4px 14px rgba(76, 175, 80, 0.3)',
+                                  transition: 'all 0.3s ease',
+                                  position: 'relative',
+                                  overflow: 'hidden',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '8px'
+                                }}
+                              >
+                                <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '9px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 5px', borderRadius: '4px' }}>#2.3</span>
+                                <span style={{ fontSize: '18px' }}>📞</span>
+                                <span>Llamar al Cliente</span>
+                              </button>
+
+                              {/* Botón Dirección del Cliente - Abre Google Maps */}
+                              <button
+                                onClick={() => {
+                                  // Extraer dirección de origen desde items o usar pickupAddress
+                                  let pickupAddress = '';
+                                  
+                                  if (typeof order.items === 'string') {
+                                    const origenMatch = order.items.match(/🚩 Origen:\s*(.*)/);
+                                    if (origenMatch && origenMatch[1]) {
+                                      pickupAddress = origenMatch[1].trim();
+                                    }
+                                  }
+                                  
+                                  // Si no se encontró en items, usar pickupAddress
+                                  if (!pickupAddress) {
+                                    const orderAny = order as any;
+                                    pickupAddress = orderAny.pickupLocation?.address || orderAny.pickupAddress || '';
+                                  }
+                                  
+                                  if (pickupAddress) {
+                                    const encodedAddress = encodeURIComponent(pickupAddress);
+                                    window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');
+                                  }
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
+                                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(33, 150, 243, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0)';
+                                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(33, 150, 243, 0.3)';
+                                }}
+                                style={{
+                                  padding: '14px 18px',
+                                  background: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '12px',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: '700',
+                                  boxShadow: '0 4px 14px rgba(33, 150, 243, 0.3)',
+                                  transition: 'all 0.3s ease',
+                                  position: 'relative',
+                                  overflow: 'hidden',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'flex-start',
+                                  gap: '4px',
+                                  textAlign: 'left'
+                                }}
+                              >
+                                <span style={{ position: 'absolute', right: '8px', top: '8px', fontSize: '9px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 5px', borderRadius: '4px' }}>#2.3</span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
+                                  <span style={{ fontSize: '16px' }}>🚩</span>
+                                  <span>Origen:</span>
+                                </span>
+                                <span style={{ fontSize: '10px', opacity: 0.9, marginLeft: '22px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                                  {(() => {
+                                    if (typeof order.items === 'string') {
+                                      const origenMatch = order.items.match(/🚩 Origen:\s*(.*)/);
+                                      if (origenMatch && origenMatch[1]) {
+                                        return origenMatch[1].trim();
+                                      }
+                                    }
+                                    const orderAny = order as any;
+                                    return orderAny.pickupLocation?.address || orderAny.pickupAddress || 'Punto de Partida';
+                                  })()}
+                                </span>
+                              </button>
+
+                              {/* Botón Destino del Cliente */}
+                              <button
+                                onClick={() => {
+                                  // Extraer dirección de destino desde items o usar deliveryAddress
+                                  let destinationAddress = '';
+                                  
+                                  if (typeof order.items === 'string') {
+                                    const destinoMatch = order.items.match(/🏁 Destino:\s*(.*)/);
+                                    if (destinoMatch && destinoMatch[1]) {
+                                      destinationAddress = destinoMatch[1].trim();
+                                    }
+                                  }
+                                  
+                                  // Si no se encontró en items, usar deliveryAddress
+                                  if (!destinationAddress) {
+                                    destinationAddress = order.deliveryAddress || '';
+                                  }
+                                  
+                                  if (destinationAddress) {
+                                    const address = encodeURIComponent(destinationAddress);
+                                    window.open(`https://www.google.com/maps/search/?api=1&query=${address}`, '_blank');
+                                  }
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
+                                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(156, 39, 176, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0)';
+                                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(156, 39, 176, 0.3)';
+                                }}
+                                style={{
+                                  padding: '14px 18px',
+                                  background: 'linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '12px',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: '700',
+                                  boxShadow: '0 4px 14px rgba(156, 39, 176, 0.3)',
+                                  transition: 'all 0.3s ease',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '8px'
+                                }}
+                              >
+                                <span style={{ fontSize: '18px' }}>📋</span>
+                                <span>Destino del cliente</span>
+                              </button>
+
+                              {/* Botón En camino al restaurante/punto de partida */}
+                              <button
+                                onClick={async () => {
+                                  await new Promise(resolve => setTimeout(resolve, 300));
+                                  handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_PICKUP);
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
+                                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 152, 0, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0)';
+                                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(255, 152, 0, 0.3)';
+                                }}
+                                style={{
+                                  padding: '14px 18px',
+                                  background: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '12px',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: '700',
+                                  boxShadow: '0 4px 14px rgba(255, 152, 0, 0.3)',
+                                  transition: 'all 0.3s ease',
+                                  position: 'relative',
+                                  overflow: 'hidden',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '8px'
+                                }}
+                              >
+                                <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '9px', opacity: 0.7, background: 'rgba(255,255,255,0.2)', padding: '2px 5px', borderRadius: '4px' }}>#3.3</span>
+                                <span style={{ fontSize: '18px' }}>🛵</span>
+                                <span>1. En camino al punto de partida</span>
+                              </button>
+
+                              {/* Botón Destino del Cliente - Abre Google Maps */}
+                              <button
+                                onClick={() => {
+                                  const deliveryAddress = order.deliveryAddress || '';
+                                  if (deliveryAddress) {
+                                    const encodedAddress = encodeURIComponent(deliveryAddress);
+                                    window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');
+                                  }
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(-2px)';
+                                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(233, 30, 99, 0.4)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0)';
+                                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(233, 30, 99, 0.3)';
+                                }}
+                                style={{
+                                  padding: '14px 18px',
+                                  background: 'linear-gradient(135deg, #E91E63 0%, #C2185B 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '12px',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: '700',
+                                  boxShadow: '0 4px 14px rgba(233, 30, 99, 0.3)',
+                                  transition: 'all 0.3s ease',
+                                  position: 'relative',
+                                  overflow: 'hidden',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'flex-start',
+                                  gap: '4px',
+                                  textAlign: 'left',
+                                  gridColumn: '1 / -1'
+                                }}
+                              >
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
+                                  <span style={{ fontSize: '16px' }}>🎯</span>
+                                  <span>Destino del Cliente</span>
+                                </span>
+                                <span style={{ fontSize: '10px', opacity: 0.9, marginLeft: '22px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                                  {order.deliveryAddress || 'Destino'}
+                                </span>
+                              </button>
+                            </div>
+                            </>
+                          )}
+                          {/* Botón En camino al restaurante (solo si está ACCEPTED y NO es motocicleta) */}
+                          {order.status === OrderStatus.ACCEPTED && order.serviceType !== 'MOTORCYCLE_TAXI' && (
                           <button
                             onClick={() => handleUpdateOrderStatus(order.id, OrderStatus.ON_THE_WAY_TO_STORE)}
                             onMouseEnter={(e) => {

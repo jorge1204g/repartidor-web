@@ -76,7 +76,10 @@ class OrderService {
             createdAt: order.createdAt || Date.now(),
             deliveredAt: order.deliveredAt || null,
             restaurantMapUrl: order.restaurantMapUrl || '', // URL de Google Maps del restaurante
-            orderType: order.orderType // Leer el tipo de pedido (puede ser undefined para pedidos antiguos)
+            orderType: order.orderType, // Leer el tipo de pedido (puede ser undefined para pedidos antiguos)
+            serviceType: order.serviceType, // Tipo de servicio: MOTORCYCLE_TAXI, etc.
+            pickupAddress: order.pickupAddress || '', // Dirección de origen para motocicleta
+            distance: order.distance || undefined // Distancia calculada
           };
           
           ordersArray.push(orderObj);
