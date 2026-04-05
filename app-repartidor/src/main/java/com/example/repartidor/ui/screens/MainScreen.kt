@@ -420,7 +420,7 @@ fun OrderDetailsModal(
                                     Text("Contactar por WhatsApp")
                                 }
                                 
-                                // Botón para copiar el número de teléfono del cliente
+                                // Botón para ver destino del cliente
                                 Button(
                                     onClick = {
                                         clipboardManager.setText(AnnotatedString(order.customer.phone))
@@ -433,7 +433,7 @@ fun OrderDetailsModal(
                                 ) {
                                     Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Copiar número de teléfono")
+                                    Text("Destino del cliente")
                                 }
                                 
                                 
@@ -1012,7 +1012,7 @@ fun OrderDetailScreen(
                             }
                         }
                         
-                        // Botón para copiar el número de teléfono del cliente
+                        // Botón para ver destino del cliente
                         Button(
                             onClick = {
                                 clipboardManager.setText(AnnotatedString(order.customer.phone))
@@ -1025,7 +1025,7 @@ fun OrderDetailScreen(
                         ) {
                             Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Copiar número de teléfono")
+                            Text("Destino del cliente")
                         }
                     }
                 }

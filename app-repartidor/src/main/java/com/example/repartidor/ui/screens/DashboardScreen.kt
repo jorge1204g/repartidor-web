@@ -505,7 +505,7 @@ fun OrderCard(
                     )
                 }
                 
-                // Botón: Copiar teléfono
+                // Botón: Destino del cliente
                 Button(
                     onClick = {
                         val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -524,7 +524,7 @@ fun OrderCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "📋 Copiar número de teléfono",
+                        text = "📋 Destino del cliente",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         color = Color.White
