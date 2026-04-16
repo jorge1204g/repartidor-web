@@ -197,7 +197,7 @@ const RegisterPage: React.FC = () => {
         businessType: businessType.trim(),
         notes: notes.trim(),
         location: location,
-        isApproved: false, // Pendiente de aprobación
+        isApproved: true, // Aprobado automáticamente
         isActive: true,
         registrationDate: new Date().toISOString(),
         createdAt: Date.now()
