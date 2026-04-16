@@ -189,6 +189,7 @@ const RegisterPage: React.FC = () => {
 
       const restaurantData = {
         id: newRestaurantId,
+        name: businessName.trim(), // Para compatibilidad con la app del admin
         businessName: businessName.trim(),
         phone: phone.trim(),
         address: address.trim(),
