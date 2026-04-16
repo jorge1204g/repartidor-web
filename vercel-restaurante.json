@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "src": "restaurante-web/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "restaurante-web/dist"
+      }
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
