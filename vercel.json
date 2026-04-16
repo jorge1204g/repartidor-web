@@ -1,0 +1,11 @@
+{
+  "buildCommand": "cd restaurante-web && npm install && npm run build",
+  "outputDirectory": "restaurante-web/dist",
+  "installCommand": "cd restaurante-web && npm install",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
