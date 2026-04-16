@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cómo Crear un Pedido de Motocicleta</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .flyer {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header-icon {
+            font-size: 80px;
+            margin-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .intro {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .intro p {
+            font-size: 16px;
+            color: #2d3436;
+            font-weight: 500;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+            transition: transform 0.2s;
+        }
+
+        .step:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content h3 {
+            color: #2d3436;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .step-content p {
+            color: #636e72;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .tip-box {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .tip-box h3 {
+            color: #2d3436;
+            font-size: 20px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tip-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .tip-box li {
+            color: #2d3436;
+            font-size: 15px;
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .tip-box li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #00b894;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .pricing {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .pricing h3 {
+            color: #2d3436;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .price-tag {
+            background: white;
+            display: inline-block;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 32px;
+            font-weight: bold;
+            color: #e17055;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .footer {
+            background: #2d3436;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .footer h3 {
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        .footer p {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .share-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+
+        .share-button:hover {
+            transform: scale(1.05);
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .flyer {
+                box-shadow: none;
+            }
+            .share-button {
+                display: none;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 28px;
+            }
+            .step {
+                flex-direction: column;
+            }
+            .price-tag {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="flyer">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-icon">🏍️</div>
+            <h1>Viaje en Motocicleta</h1>
+            <p>Solicita un viaje rápido y seguro en motocicleta</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Intro -->
+            <div class="intro">
+                <p>✨ Ideal para distancias cortas y tráfico pesado. ¡Llega rápido a tu destino! ✨</p>
+            </div>
+
+            <!-- Steps -->
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>📱 Abre la App Cliente</h3>
+                        <p>Ingresa a la plataforma web del cliente con tu cuenta registrada.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>🎯 Selecciona "Viaje en Motocicleta"</h3>
+                        <p>En la pantalla de servicios, toca el botón <strong>"🏍️ Viaje en Motocicleta"</strong>.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>📍 Ingresa tu Ubicación Actual</h3>
+                        <p>Presiona <strong>"Usar mi ubicación actual"</strong> o escribe manualmente tu dirección de recogida.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>🏁 Ingresa tu Destino</h3>
+                        <p>Escribe la dirección completa de tu destino. ¡Sé específico para mayor precisión!</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h3>👤 Verifica tus Datos</h3>
+                        <p>Confirma que tu nombre y número de teléfono estén correctos.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <h3>💳 Selecciona Método de Pago</h3>
+                        <p>Elige <strong>"💵 Pago en efectivo"</strong> (paga directamente al repartidor).</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">7</div>
+                    <div class="step-content">
+                        <h3>✅ Crea tu Pedido</h3>
+                        <p>Presiona el botón <strong>"🏍️ Solicitar Motocicleta"</strong> y espera a que un repartidor acepte tu viaje.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">8</div>
+                    <div class="step-content">
+                        <h3>🗺️ Sigue tu Viaje en Tiempo Real</h3>
+                        <p>Una vez aceptado, podrás ver en el mapa cómo el repartidor se acerca a tu ubicación.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="tip-box">
+                <h3>💡 Consejos Importantes</h3>
+                <ul>
+                    <li>Asegúrate de tener activada la ubicación (GPS) en tu dispositivo</li>
+                    <li>Verifica que tu número de teléfono esté correcto para contacto</li>
+                    <li>El repartidor te contactará si necesita indicaciones adicionales</li>
+                    <li>Recibirás un código de confirmación de 4 dígitos al crear el pedido</li>
+                    <li>Comparte tu código solo con el repartidor asignado</li>
+                </ul>
+            </div>
+
+            <!-- Pricing -->
+            <div class="pricing">
+                <h3>💰 Tarifa del Servicio</h3>
+                <div class="price-tag">$60 MXN</div>
+                <p style="margin-top: 15px; color: #2d3436; font-weight: 500;">Tarifa fija por viaje</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <h3>📞 ¿Necesitas Ayuda?</h3>
+            <p>Contacta a nuestro soporte técnico</p>
+            <p style="font-size: 20px; margin-top: 10px;">📱 WhatsApp: +52 XXX XXX XXXX</p>
+            
+            <button class="share-button" onclick="window.print()">
+                🖨️ Imprimir / Compartir PDF
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Auto-print prompt
+        window.addEventListener('load', () => {
+            console.log('Flyer cargado correctamente. Presiona Ctrl+P para imprimir o guardar como PDF.');
+        });
+    </script>
+</body>
+</html>

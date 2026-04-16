@@ -48,7 +48,11 @@ fun DashboardScreen(
     
     // Detectar pedidos activos para iniciar/detener seguimiento de ubicacion
     val hasActiveDeliveryOrder = orders.any { order ->
-        order.status in listOf("ACCEPTED", "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER")
+        order.status in listOf(
+            "ACCEPTED", "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER",
+            // Estados para motocicleta
+            "ON_THE_WAY_TO_PICKUP", "ARRIVED_AT_PICKUP", "ON_THE_WAY_TO_DESTINATION"
+        )
     }
     
     // Iniciar o detener seguimiento de ubicacion segun el estado del pedido
@@ -64,22 +68,29 @@ fun DashboardScreen(
         }
     }
     
-    // Filtrar pedidos activos y asignados manualmente/por restaurante
+    // Filtrar pedidos activos y asignados manualmente/por restaurante/motocicleta
     val activeOrders = orders.filter { order ->
         order.status != "DELIVERED"
     }
     val assignedOrders = orders.filter { order ->
-        order.orderType == "MANUAL" || order.orderType == "RESTAURANT"
+        order.orderType == "MANUAL" || 
+        order.orderType == "RESTAURANT" ||
+        order.serviceType == "MOTORCYCLE_TAXI"
     }
     
     // Determinar el texto del botón según el tipo de asignación
     val hasManualAssigned = assignedOrders.any { it.orderType == "MANUAL" }
     val hasRestaurantAssigned = assignedOrders.any { it.orderType == "RESTAURANT" }
+    val hasMotorcycleAssigned = assignedOrders.any { it.serviceType == "MOTORCYCLE_TAXI" }
     
     val assignedButtonText = when {
+        hasManualAssigned && hasRestaurantAssigned && hasMotorcycleAssigned -> "📋 Todos (${assignedOrders.size})"
         hasManualAssigned && hasRestaurantAssigned -> "📋 Ambos (${assignedOrders.size})"
+        hasManualAssigned && hasMotorcycleAssigned -> "📋 Manual/Moto (${assignedOrders.size})"
+        hasRestaurantAssigned && hasMotorcycleAssigned -> "📋 Rest/Moto (${assignedOrders.size})"
         hasManualAssigned -> "👤 Manual (${assignedOrders.size})"
         hasRestaurantAssigned -> "🏪 Restaurante (${assignedOrders.size})"
+        hasMotorcycleAssigned -> "🏍️ Motocicleta (${assignedOrders.size})"
         else -> "📋 Asignados (${assignedOrders.size})"
     }
     
@@ -447,10 +458,32 @@ fun OrderCard(
         ) {
             // Título principal
             Text(
-                text = "🔔 Nuevos pedidos recibidos",
+                text = "📦 Pedido #${order.id}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF4CAF50)  // Verde brillante
+                color = Color.White
+            )
+            
+            // Tipo de servicio
+            val serviceTypeText = when (order.serviceType) {
+                "MOTORCYCLE_TAXI" -> "🏍️ Motocicleta"
+                "FOOD" -> "🍔 Favor de comida"
+                "GASOLINE" -> "⛔ Gasolina"
+                else -> "📦 Pedido de restaurante"
+            }
+            Text(
+                text = serviceTypeText,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF9800)  // Naranja
+            )
+            
+            // Ganancia
+            Text(
+                text = "💰 Ganancia: \$${String.format("%.2f", order.deliveryCost)}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF4CAF50)  // Verde
             )
             
             // Información del cliente y restaurante
@@ -479,113 +512,200 @@ fun OrderCard(
             
             // Botones de acción rápida - Solo mostrar si el pedido ya fue aceptado
             if (order.status != "MANUAL_ASSIGNED" || order.assignedToDeliveryId.isNotEmpty()) {
-                // Botón: Llamar al cliente
-                Button(
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${order.customer.phone}"))
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),  // Azul
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "📞 Llamar al cliente",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color.White
-                    )
-                }
+                val isMotorcycle = order.serviceType == "MOTORCYCLE_TAXI" || order.distance != null
                 
-                // Botón: Destino del cliente
-                Button(
-                    onClick = {
-                        val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboardManager.setPrimaryClip(android.content.ClipData.newPlainText("Teléfono cliente", order.customer.phone))
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0)),  // Morado
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "📋 Destino del cliente",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color.White
-                    )
-                }
-                
-                // Botón: Dirección del cliente
-                Button(
-                    onClick = {
-                        // Abrir Google Maps con la dirección del cliente
-                        val address = Uri.encode(order.deliveryAddress)
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=$address"))
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),  // Verde
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "📍 Dirección del cliente",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color.White
-                    )
-                }
-                
-                // Botón: Dirección del restaurante
-                Button(
-                    onClick = {
-                        // Abrir Google Maps con la dirección del restaurante
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(order.restaurantName)}"))
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),  // Naranja
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Store,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "🏪 Dirección del restaurante",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color.White
-                    )
+                if (isMotorcycle) {
+                    // ========== BOTONES PARA MOTOCICLETA ==========
+                    
+                    // Botón: Llamar al pasajero
+                    Button(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${order.customer.phone}"))
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "📞 Llamar al pasajero",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = Color.White
+                        )
+                    }
+                    
+                    // Botón: Copiar teléfono del pasajero
+                    Button(
+                        onClick = {
+                            val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboardManager.setPrimaryClip(android.content.ClipData.newPlainText("Teléfono pasajero", order.customer.phone))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "📋 Copiar teléfono del pasajero",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = Color.White
+                        )
+                    }
+                    
+                    // Botón: Destino del pasajero
+                    Button(
+                        onClick = {
+                            val address = Uri.encode(order.deliveryAddress)
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=$address"))
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "📍 Destino del pasajero",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = Color.White
+                        )
+                    }
+                    
+                    // Botón: Ubicación de recogida del pasajero
+                    Button(
+                        onClick = {
+                            val address = Uri.encode(order.pickupAddress)
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=$address"))
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MyLocation,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "🚩 Ubicación de recogida del pasajero",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = Color.White
+                        )
+                    }
+                } else {
+                    // ========== BOTONES PARA RESTAURANTE/FAVORES ==========
+                    
+                    // Botón: Llamar al cliente
+                    Button(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${order.customer.phone}"))
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "📞 Llamar al cliente",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = Color.White
+                        )
+                    }
+                    
+                    // Botón: Copiar teléfono del cliente
+                    Button(
+                        onClick = {
+                            val clipboardManager = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboardManager.setPrimaryClip(android.content.ClipData.newPlainText("Teléfono cliente", order.customer.phone))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "📋 Copiar teléfono del cliente",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = Color.White
+                        )
+                    }
+                    
+                    // Botón: Dirección del cliente (entrega)
+                    Button(
+                        onClick = {
+                            val address = Uri.encode(order.deliveryAddress)
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=$address"))
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "📍 Dirección del cliente",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = Color.White
+                        )
+                    }
                 }
             }
             
@@ -598,7 +718,7 @@ fun OrderCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (isMotorcycle) {
-                        // Para servicio de motocicleta, mostrar la ruta
+                        // Para servicio de motocicleta, mostrar la ruta completa
                         Text(
                             text = "🏍️ Servicio de Motocicleta:",
                             style = MaterialTheme.typography.bodyMedium,
@@ -606,8 +726,18 @@ fun OrderCard(
                             color = Color(0xFF2196F3)  // Azul
                         )
                         Spacer(modifier = Modifier.height(4.dp))
+                                        
+                        // Usar itemsOriginalString si está disponible, sino usar items[0].name
+                        val routeText = if (!order.itemsOriginalString.isNullOrBlank()) {
+                            order.itemsOriginalString
+                        } else if (order.items.isNotEmpty()) {
+                            order.items[0].name
+                        } else {
+                            "Sin información de ruta"
+                        }
+                                        
                         Text(
-                            text = "  ${order.items[0].name}",
+                            text = "  $routeText",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White,
                             modifier = Modifier.padding(start = 8.dp)
@@ -618,6 +748,42 @@ fun OrderCard(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF9CA3AF),
                                 modifier = Modifier.padding(start = 24.dp, top = 4.dp)
+                            )
+                        }
+                        
+                        // Mostrar dirección de origen
+                        if (order.pickupAddress.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "🚩 Mi Ubicación:",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF4CAF50),  // Verde
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                            Text(
+                                text = order.pickupAddress,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFE5E7EB),
+                                modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                            )
+                        }
+                        
+                        // Mostrar dirección de destino
+                        if (order.deliveryAddress.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "📍 Destino:",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFF59E0B),  // Naranja
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                            Text(
+                                text = order.deliveryAddress,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFE5E7EB),
+                                modifier = Modifier.padding(start = 8.dp, top = 2.dp)
                             )
                         }
                     } else {
@@ -641,8 +807,35 @@ fun OrderCard(
                 }
             }
             
+            // Notas del cliente (si existen)
+            if (!order.additionalNotes.isNullOrBlank()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFF9800).copy(alpha = 0.1f)),
+                    border = BorderStroke(1.dp, Color(0xFFFF9800).copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "💬 Notas del Cliente:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFF9800)
+                        )
+                        Text(
+                            text = order.additionalNotes,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+            
             // Mensaje informativo
-            if (order.status == "MANUAL_ASSIGNED" && order.assignedToDeliveryId.isEmpty()) {
+            if (order.status in listOf("MANUAL_ASSIGNED", "ASSIGNED", "PENDING") && order.assignedToDeliveryId.isEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF4CAF50).copy(alpha = 0.1f)),  // Verde transparente
@@ -666,7 +859,7 @@ fun OrderCard(
             }
             
             // Botón de aceptar
-            if (order.status == "MANUAL_ASSIGNED" && order.assignedToDeliveryId.isEmpty()) {
+            if (order.status in listOf("MANUAL_ASSIGNED", "ASSIGNED", "PENDING") && order.assignedToDeliveryId.isEmpty()) {
                 Button(
                     onClick = {
                         viewModel.acceptOrder(order.id)
@@ -694,255 +887,59 @@ fun OrderCard(
                 }
             }
             
-            // Botones del flujo de entrega
-            if (order.status == "ACCEPTED") {
-                // Botón: En camino al restaurante
-                Button(
-                    onClick = {
-                        viewModel.goToStore(order.id)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),  // Azul
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsBike,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "#1 En camino al restaurante",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
+            // Separar flujos: RESTAURANTE vs MOTOCICLETA
+            val isMotorcycle = order.serviceType == "MOTORCYCLE_TAXI"
+            
+            // Función auxiliar para obtener el nombre del lugar según el servicio
+            fun getPlaceName(): String {
+                return when (order.serviceType) {
+                    "GASOLINE" -> "la gasolinera"
+                    "MEDICINES" -> "la farmacia"
+                    "STATIONERY" -> "la papelería"
+                    "BEVERAGES" -> "la tienda"
+                    "WATER" -> "la tienda de agua"
+                    "GAS" -> "la gasera"
+                    "PAYMENTS" -> "el lugar de pago"
+                    "FAVORS" -> "el lugar de recogida"
+                    "FOOD" -> order.restaurantName.takeIf { it.isNotBlank() } ?: "el restaurante"
+                    else -> "el restaurante"
                 }
             }
             
-            if (order.status == "ON_THE_WAY_TO_STORE") {
-                // Botón: Llegué al restaurante
-                Button(
-                    onClick = {
-                        viewModel.arrivedAtStore(order.id)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),  // Naranja
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Store,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "#2 Llegué al restaurante",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
+            // Función auxiliar para obtener el emoji según el servicio
+            fun getServiceEmoji(): String {
+                return when (order.serviceType) {
+                    "GASOLINE" -> "⛽"
+                    "MEDICINES" -> "💊"
+                    "STATIONERY" -> "📝"
+                    "BEVERAGES" -> "🍺"
+                    "WATER" -> "💧"
+                    "GAS" -> "🔥"
+                    "PAYMENTS" -> "📦"
+                    "FAVORS" -> "🎁"
+                    "FOOD" -> "🍔"
+                    else -> "📦"
                 }
             }
             
-            if (order.status == "ARRIVED_AT_STORE") {
-                // Botón: Recogiendo pedido
-                Button(
-                    onClick = {
-                        viewModel.pickingUpOrder(order.id)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0)),  // Morado
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Restaurant,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "#3 Repartidor con alimentos en mochila",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = Color.White
-                    )
+            // Función auxiliar para obtener el nombre del producto
+            fun getProductName(): String {
+                return when (order.serviceType) {
+                    "GASOLINE" -> "la gasolina"
+                    "MEDICINES" -> "los medicamentos"
+                    "STATIONERY" -> "los artículos de papelería"
+                    "BEVERAGES" -> "las cervezas y cigarros"
+                    "WATER" -> "los garrafones de agua"
+                    "GAS" -> "el gas"
+                    "PAYMENTS" -> "los documentos de pago"
+                    "FAVORS" -> "el favor"
+                    "FOOD" -> "alimentos en mochila"
+                    else -> "el pedido"
                 }
             }
             
-            if (order.status == "PICKING_UP_ORDER") {
-                // Botón: En camino al cliente
-                Button(
-                    onClick = {
-                        viewModel.goToCustomer(order.id)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BCD4)),  // Cian
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsCar,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "#4 En camino al cliente",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
-                }
-            }
-            
-            if (order.status == "ON_THE_WAY_TO_CUSTOMER") {
-                // Botón: Pedido entregado (con validación de código)
-                Button(
-                    onClick = {
-                        showCodeDialog = true
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),  // Verde
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "#5 Pedido entregado",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color.White
-                    )
-                }
-                
-                // Código de confirmación
-                if (order.customerCode.isNotEmpty()) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF4CAF50).copy(alpha = 0.2f)),
-                        border = BorderStroke(2.dp, Color(0xFF4CAF50)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "✅ Código de Confirmación",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF4CAF50)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = order.customerCode,
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF4CAF50)
-                            )
-                            Text(
-                                text = "Muestra este código al cliente",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF4CAF50)
-                            )
-                        }
-                    }
-                }
-                
-                // Diálogo para ingresar código del cliente
-                if (showCodeDialog) {
-                    AlertDialog(
-                        onDismissRequest = { 
-                            showCodeDialog = false
-                            codeError = ""
-                            enteredCode = ""
-                        },
-                        title = { Text("Código de Confirmación") },
-                        text = {
-                            Column {
-                                Text("Por favor ingrese el código del cliente para confirmar la entrega:")
-                                Spacer(modifier = Modifier.height(16.dp))
-                                OutlinedTextField(
-                                    value = enteredCode,
-                                    onValueChange = { newValue ->
-                                        // Validar que solo contenga números y tenga máximo 4 dígitos
-                                        if (newValue.length <= 4 && newValue.all { char -> char.isDigit() }) {
-                                            enteredCode = newValue
-                                        }
-                                    },
-                                    label = { Text("Código del cliente") },
-                                    placeholder = { Text("Ingrese 4 dígitos") },
-                                    isError = codeError.isNotEmpty(),
-                                    supportingText = {
-                                        if (codeError.isNotEmpty()) {
-                                            Text(
-                                                text = codeError,
-                                                color = MaterialTheme.colorScheme.error
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    if (enteredCode == order.customerCode) {
-                                        // Código correcto, completar la entrega
-                                        viewModel.deliveredOrder(order.id)
-                                        showCodeDialog = false
-                                        codeError = ""
-                                        enteredCode = ""
-                                    } else {
-                                        // Código incorrecto
-                                        codeError = "Código incorrecto. Inténtelo de nuevo."
-                                    }
-                                }
-                            ) {
-                                Text("Confirmar")
-                            }
-                        },
-                        dismissButton = {
-                            Button(
-                                onClick = { 
-                                    showCodeDialog = false
-                                    codeError = ""
-                                    enteredCode = ""
-                                }
-                            ) {
-                                Text("Cancelar")
-                            }
-                        }
-                    )
-                }
-            }
-            
-            // Botones específicos para MOTOCICLETA (servicio de pasajeros)
-            if (order.serviceType == "MOTORCYCLE_TAXI") {
+            if (isMotorcycle) {
+                // ========== FLUJO PARA MOTOCICLETA ==========
                 if (order.status == "ACCEPTED") {
                     // Botón: En camino a recoger pasajero
                     Button(
@@ -1058,7 +1055,254 @@ fun OrderCard(
                         )
                     }
                 }
-            }
+            } else {
+                // ========== FLUJO PARA RESTAURANTE ==========
+                if (order.status == "ACCEPTED") {
+                    // Botón: En camino al lugar
+                    Button(
+                        onClick = {
+                            viewModel.goToStore(order.id)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsBike,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "${getServiceEmoji()} #1 En camino a ${getPlaceName()}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+                            
+                if (order.status == "ON_THE_WAY_TO_STORE") {
+                    // Botón: Llegué al lugar
+                    Button(
+                        onClick = {
+                            viewModel.arrivedAtStore(order.id)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Store,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "${getServiceEmoji()} #2 Llegué a ${getPlaceName()}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+                            
+                if (order.status == "ARRIVED_AT_STORE") {
+                    // Botón: Recogiendo pedido
+                    Button(
+                        onClick = {
+                            viewModel.pickingUpOrder(order.id)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9C27B0)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Restaurant,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "${getServiceEmoji()} #3 Repartidor con ${getProductName()}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+                            
+                if (order.status == "PICKING_UP_ORDER") {
+                    // Botón: En camino al cliente
+                    Button(
+                        onClick = {
+                            viewModel.goToCustomer(order.id)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BCD4)),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsCar,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "${getServiceEmoji()} #4 En camino al cliente",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+                            
+                if (order.status == "ON_THE_WAY_TO_CUSTOMER") {
+                    // Botón: Pedido entregado (con validación de código)
+                    Button(
+                        onClick = {
+                            showCodeDialog = true
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),  // Verde
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "#5 Pedido entregado",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = Color.White
+                        )
+                    }
+                                
+                    // Código de confirmación
+                    if (order.customerCode.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF4CAF50).copy(alpha = 0.2f)),
+                            border = BorderStroke(2.dp, Color(0xFF4CAF50)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "✅ Código de Confirmación",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF4CAF50)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = order.customerCode,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF4CAF50)
+                                )
+                                Text(
+                                    text = "Muestra este código al cliente",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF4CAF50)
+                                )
+                            }
+                        }
+                    }
+                                
+                    // Diálogo para ingresar código del cliente
+                    if (showCodeDialog) {
+                        AlertDialog(
+                            onDismissRequest = { 
+                                showCodeDialog = false
+                                codeError = ""
+                                enteredCode = ""
+                            },
+                            title = { Text("Código de Confirmación") },
+                            text = {
+                                Column {
+                                    Text("Por favor ingrese el código del cliente para confirmar la entrega:")
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    OutlinedTextField(
+                                        value = enteredCode,
+                                        onValueChange = { newValue ->
+                                            // Validar que solo contenga números y tenga máximo 4 dígitos
+                                            if (newValue.length <= 4 && newValue.all { char -> char.isDigit() }) {
+                                                enteredCode = newValue
+                                            }
+                                        },
+                                        label = { Text("Código del cliente") },
+                                        placeholder = { Text("Ingrese 4 dígitos") },
+                                        isError = codeError.isNotEmpty(),
+                                        supportingText = {
+                                            if (codeError.isNotEmpty()) {
+                                                Text(
+                                                    text = codeError,
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        if (enteredCode == order.customerCode) {
+                                            // Código correcto, completar la entrega
+                                            viewModel.deliveredOrder(order.id)
+                                            showCodeDialog = false
+                                            codeError = ""
+                                            enteredCode = ""
+                                        } else {
+                                            // Código incorrecto
+                                            codeError = "Código incorrecto. Inténtelo de nuevo."
+                                        }
+                                    }
+                                ) {
+                                    Text("Confirmar")
+                                }
+                            },
+                            dismissButton = {
+                                Button(
+                                    onClick = { 
+                                        showCodeDialog = false
+                                        codeError = ""
+                                        enteredCode = ""
+                                    }
+                                ) {
+                                    Text("Cancelar")
+                                }
+                            }
+                        )
+                    }
+                }
+            } // Fin del else (flujo restaurante)
         }
     }
 }

@@ -47,7 +47,7 @@ class MessageRepository {
                 val messages = snapshot.children
                     .mapNotNull { it.getValue(Message::class.java) }
                     .filter { it.receiverId == userId || it.senderId == userId }
-                    .sortedByDescending { it.timestamp }
+                    .sortedBy { it.timestamp }  // Orden ascendente: más viejo primero, nuevo abajo
                 
                 trySend(messages)
             }
@@ -118,7 +118,7 @@ class MessageRepository {
         }
     }
     
-    // Método para enviar imágenes usando Firebase Storage
+    // Método para enviar imágenes como Base64 directo (sin Storage)
     suspend fun sendImage(
         senderId: String,
         senderName: String,
@@ -128,33 +128,29 @@ class MessageRepository {
         orderId: String? = null
     ): Result<String> {
         return try {
-            println("📦 [DEBUG] Iniciando envío de imagen a Storage")
+            println("📦 [DEBUG] Iniciando envío de imagen como Base64 directo")
             
-            // Decodificar Base64 a bytes
+            // Decodificar Base64 a bytes para verificar tamaño
             val imageBytes = android.util.Base64.decode(imageBase64, android.util.Base64.DEFAULT)
             
-            // Comprimir imagen si es muy grande
-            val compressedBytes = if (imageBytes.size > 500 * 1024) { // Más de 500KB
-                println("⚠️ [DEBUG] Imagen muy grande (${imageBytes.size} bytes), comprimiendo...")
-                compressImage(imageBytes)
+            println("📦 [DEBUG] Tamaño de imagen: ${imageBytes.size} bytes (${imageBytes.size / 1024} KB)")
+            
+            // Comprimir imagen de forma más agresiva - objetivo: máximo 100KB para Base64 directo
+            val maxSize = 100 * 1024 // 100KB máximo
+            val compressedBytes = if (imageBytes.size > maxSize) {
+                println("⚠️ [DEBUG] Imagen muy grande (${imageBytes.size / 1024} KB), comprimiendo agresivamente...")
+                compressImageAggressive(imageBytes, maxSize)
             } else {
                 imageBytes
             }
             
-            // Crear nombre único para la imagen
-            val imageName = "images/${System.currentTimeMillis()}_${UUID.randomUUID()}.jpg"
-            val storage = FirebaseStorage.getInstance()
-            val imageRef = storage.getReference(imageName)
+            println("✅ [DEBUG] Tamaño después de comprimir: ${compressedBytes.size} bytes (${compressedBytes.size / 1024} KB)")
             
-            println("📤 [DEBUG] Subiendo imagen: $imageName (${compressedBytes.size} bytes)")
+            // Convertir bytes comprimidos a Base64 (sin saltos de línea)
+            val compressedBase64 = android.util.Base64.encodeToString(compressedBytes, android.util.Base64.NO_WRAP)
             
-            // Subir imagen a Firebase Storage
-            imageRef.putBytes(compressedBytes).await()
-            
-            // Obtener URL de descarga
-            val imageUrl = imageRef.downloadUrl.await().toString()
-            
-            println("✅ [DEBUG] Imagen subida exitosamente. URL: ${imageUrl.substring(0, 50)}...")
+            println("📤 [DEBUG] Base64 final: ${compressedBase64.length} caracteres")
+            println("📤 [DEBUG] Primeros 50 chars: ${compressedBase64.substring(0, minOf(50, compressedBase64.length))}")
             
             // Crear objeto de mensaje
             val key = messagesRef.push().key ?: return Result.failure(Exception("Failed to generate message key"))
@@ -165,15 +161,20 @@ class MessageRepository {
                 senderName = senderName,
                 receiverId = receiverId,
                 receiverName = receiverName,
-                message = "📷 Imagen enviada",
+                message = "📷 Imagen",
+                timestamp = System.currentTimeMillis(),
+                isRead = false,
                 messageType = com.example.repartidor.data.model.MessageType.IMAGE,
-                orderId = orderId,
-                imageUrl = imageUrl // URL de Firebase Storage en lugar de Base64
+                imageUrl = "data:image/jpeg;base64,$compressedBase64",  // Guardar Base64 directo
+                orderId = orderId
             )
             
+            println("💾 [DEBUG] Guardando mensaje en Firebase...")
+            
+            // Guardar en Firebase
             messagesRef.child(key).setValue(messageObject).await()
             
-            println("✅ [DEBUG] Mensaje con imagen guardado exitosamente")
+            println("✅ [DEBUG] Imagen enviada exitosamente como Base64 directo")
             
             Result.success(key)
         } catch (e: Exception) {
@@ -211,6 +212,63 @@ class MessageRepository {
         // Comprimir a JPEG 70% calidad
         val outputStream = ByteArrayOutputStream()
         resizedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
+        
+        return outputStream.toByteArray()
+    }
+    
+    // Función de compresión agresiva - reduce a máximo maxSize bytes
+    private fun compressImageAggressive(imageBytes: ByteArray, maxSize: Int): ByteArray {
+        var bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+        
+        // Paso 1: Redimensionar a máximo 600px
+        val maxDimension = 600
+        var width = bitmap.width
+        var height = bitmap.height
+        
+        if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+                height = (height * maxDimension) / width
+                width = maxDimension
+            } else {
+                width = (width * maxDimension) / height
+                height = maxDimension
+            }
+            bitmap = android.graphics.Bitmap.createScaledBitmap(bitmap, width, height, true)
+            println("📐 [DEBUG] Redimensionado a ${width}x${height}")
+        }
+        
+        // Paso 2: Comprimir con calidad decreciente hasta alcanzar el tamaño deseado
+        var quality = 80
+        val outputStream = ByteArrayOutputStream()
+        
+        while (quality > 10) {
+            outputStream.reset()
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, quality, outputStream)
+            
+            val compressedSize = outputStream.size()
+            println("🔄 [DEBUG] Calidad: $quality%, Tamaño: ${compressedSize / 1024} KB")
+            
+            if (compressedSize <= maxSize) {
+                println("✅ [DEBUG] Tamaño objetivo alcanzado con calidad $quality%")
+                break
+            }
+            
+            quality -= 10
+        }
+        
+        // Si todavía es muy grande, reducir más las dimensiones
+        if (outputStream.size() > maxSize) {
+            println("⚠️ [DEBUG] Aún muy grande, reduciendo dimensiones...")
+            val smallerDimension = 400
+            val newWidth = if (width > height) smallerDimension else (width * smallerDimension) / height
+            val newHeight = if (height > width) smallerDimension else (height * smallerDimension) / width
+            
+            val smallerBitmap = android.graphics.Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+            outputStream.reset()
+            smallerBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 50, outputStream)
+            
+            println("📐 [DEBUG] Redimensionado final a ${newWidth}x${newHeight}")
+        }
         
         return outputStream.toByteArray()
     }

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Códigos QR - Viajes en Moto en Fresnillo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            color: #ff6b35;
+            font-size: 36px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .header p {
+            color: #b0b0b0;
+            font-size: 18px;
+        }
+
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .qr-card {
+            background: #0a0a0a;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            border: 2px solid #333;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .qr-card:hover {
+            transform: translateY(-5px);
+            border-color: #ff6b35;
+            box-shadow: 0 15px 40px rgba(255, 107, 53, 0.2);
+        }
+
+        .qr-card-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+
+        .qr-card h3 {
+            color: #ff6b35;
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        .qr-card .qr-info {
+            color: #b0b0b0;
+            font-size: 16px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .qr-image {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .qr-image img {
+            width: 220px;
+            height: 220px;
+            display: block;
+        }
+
+        .qr-card .description {
+            color: #808080;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-top: 15px;
+        }
+
+        .print-btn {
+            display: block;
+            margin: 40px auto 0;
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .print-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid #333;
+        }
+
+        .footer p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .qr-card {
+                background: white;
+                border: 2px solid #000;
+                box-shadow: none;
+                page-break-inside: avoid;
+            }
+
+            .qr-card h3 {
+                color: #000;
+            }
+
+            .qr-card .qr-info,
+            .qr-card .description {
+                color: #333;
+            }
+
+            .print-btn {
+                display: none;
+            }
+
+            .header h1 {
+                color: #000;
+                text-shadow: none;
+            }
+
+            .header p {
+                color: #333;
+            }
+
+            .footer p {
+                color: #666;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .qr-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .qr-image img {
+                width: 200px;
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏍️ Códigos QR - Viajes en Moto en Fresnillo</h1>
+            <p>Escanea para acceder a nuestros servicios</p>
+        </div>
+
+        <div class="qr-grid">
+            <!-- QR Principal - Servicio de Motocicleta -->
+            <div class="qr-card">
+                <div class="qr-card-icon">🏍️</div>
+                <h3>Servicio de Motocicleta</h3>
+                <p class="qr-info">cliente-web-mu.vercel.app/servicio-motocicleta</p>
+                <div class="qr-image">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://cliente-web-mu.vercel.app/servicio-motocicleta" alt="QR Servicio de Motocicleta">
+                </div>
+                <p class="description">
+                    Solicita un viaje rápido y seguro en motocicleta.<br>
+                    Ideal para distancias cortas y tráfico pesado.
+                </p>
+            </div>
+
+            <!-- QR WhatsApp -->
+            <div class="qr-card">
+                <div class="qr-card-icon">💬</div>
+                <h3>WhatsApp</h3>
+                <p class="qr-info">493 174 0000</p>
+                <div class="qr-image">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://wa.me/524931740000" alt="QR WhatsApp">
+                </div>
+                <p class="description">
+                    Contáctanos directamente por WhatsApp.<br>
+                    Respuesta rápida y atención personalizada.
+                </p>
+            </div>
+
+            <!-- QR Facebook -->
+            <div class="qr-card">
+                <div class="qr-card-icon">👍</div>
+                <h3>Facebook - Click Entrega</h3>
+                <p class="qr-info">Página oficial de Facebook</p>
+                <div class="qr-image">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://www.facebook.com/profile.php?id=61577786821371" alt="QR Facebook">
+                </div>
+                <p class="description">
+                    Síguenos en Facebook para novedades y promociones.<br>
+                    Mantente informado de nuestros servicios.
+                </p>
+            </div>
+        </div>
+
+        <button class="print-btn" onclick="window.print()">🖨️ Imprimir Códigos QR</button>
+
+        <div class="footer">
+            <p>© 2026 Viajes en Moto en Fresnillo - Click Entrega</p>
+            <p style="margin-top: 5px; font-size: 12px;">Todos los derechos reservados</p>
+        </div>
+    </div>
+</body>
+</html>

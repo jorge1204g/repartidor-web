@@ -62,6 +62,8 @@ export interface Order {
   orderType?: 'MANUAL' | 'RESTAURANT'; // Tipo de pedido: Manual o Restaurante
   serviceType?: 'MOTORCYCLE_TAXI' | 'GASOLINE' | 'FOOD' | 'MEDICINES' | 'STATIONERY' | 'BEVERAGES' | 'WATER' | 'GAS' | 'PAYMENTS' | 'FAVORS'; // Tipo de servicio
   distance?: number | string; // Distancia calculada (para motocicleta)
+  itemsOriginalString?: string | null; // String original de items para motocicleta (mantiene formato con emojis y saltos de línea)
+  additionalNotes?: string; // Notas adicionales del cliente
 }
 
 export interface Message {

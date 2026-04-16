@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
 import OrdersPage from './pages/OrdersPage';
 import MenuPage from './pages/MenuPage';
@@ -17,6 +18,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<RegisterPage />} />
           <Route path="/inicio" element={<Dashboard />} />
           <Route path="/dashboard/*" element={<Dashboard />} />
           <Route path="/pedidos" element={<OrdersPage />} />

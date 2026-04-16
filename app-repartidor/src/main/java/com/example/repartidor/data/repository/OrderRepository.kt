@@ -1,5 +1,6 @@
 package com.example.repartidor.data.repository
 
+import com.example.repartidor.data.model.Message
 import com.example.repartidor.data.model.Order
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -17,17 +18,42 @@ class OrderRepository {
     private val deliveryUsersRef = database.getReference("delivery_users")
     
     fun observeAssignedOrders(deliveryId: String): Flow<List<Order>> = callbackFlow {
+        println("🔍 [REPO] ========== INICIO OBSERVACIÓN ==========")
+        println("🔍 [REPO] observeAssignedOrders called with deliveryId: '$deliveryId'")
+        println("🔍 [REPO] deliveryId.isEmpty(): ${deliveryId.isEmpty()}")
+        println("🔍 [REPO] ========================================")
+        
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val orders = snapshot.children.mapNotNull { 
+                println("🔍 [REPO] ========== DATOS DE FIREBASE ==========")
+                println("🔍 [REPO] Received ${snapshot.childrenCount} orders from Firebase")
+                println("🔍 [REPO] Filtrando para deliveryId: '$deliveryId'")
+                
+                val allOrders = snapshot.children.mapNotNull { 
                     Order.fromSnapshot(it)
-                }.filter { order ->
+                }
+                
+                println("🔍 [REPO] Total orders parsed: ${allOrders.size}")
+                println("🔍 [REPO] Current deliveryId for filtering: '$deliveryId'")
+                
+                // Log de TODOS los pedidos recibidos
+                allOrders.forEachIndexed { index, order ->
+                    println("📦 [REPO] Pedido #$index:")
+                    println("   ID: ${order.id}")
+                    println("   Status: ${order.status}")
+                    println("   assignedToDeliveryId: '${order.assignedToDeliveryId}'")
+                    println("   DeliveryId esperado: '$deliveryId'")
+                    println("   ¿Coincide?: ${order.assignedToDeliveryId == deliveryId}")
+                }
+                
+                val filteredOrders = allOrders.filter { order ->
                     // Pedidos asignados al repartidor
                     val isAssignedToDelivery = order.assignedToDeliveryId == deliveryId && 
                         order.status.uppercase() in listOf("PENDING", "ASSIGNED", "ACCEPTED", "MANUAL_ASSIGNED", 
                                               "ON_THE_WAY_TO_STORE", "ARRIVED_AT_STORE", 
                                               "PICKING_UP_ORDER", "ON_THE_WAY_TO_CUSTOMER", "DELIVERED",
                                               "ON_THE_WAY_TO_PICKUP", "ARRIVED_AT_PICKUP", 
+                                              "ON_THE_WAY_TO_DESTINATION",
                                               "WAITING_FOR_DELIVERY")
                     
                     // Pedidos disponibles sin asignar (para que el repartidor pueda aceptar)
@@ -36,9 +62,19 @@ class OrderRepository {
                                            order.status.uppercase() == "PENDING") && 
                                           order.assignedToDeliveryId.isEmpty()
                     
-                    isAssignedToDelivery || isAvailableOrder
+                    val shouldInclude = isAssignedToDelivery || isAvailableOrder
+                    
+                    if (shouldInclude) {
+                        println("✅ [REPO] Including order: ${order.id}, status: ${order.status}, serviceType: ${order.serviceType}, assignedTo: ${order.assignedToDeliveryId}")
+                    } else {
+                        println("❌ [REPO] Excluding order: ${order.id}, status: ${order.status}, serviceType: ${order.serviceType}, assignedTo: '${order.assignedToDeliveryId}'")
+                    }
+                    
+                    shouldInclude
                 }
-                trySend(orders)
+                
+                println("✅ [REPO] Sending ${filteredOrders.size} orders to UI")
+                trySend(filteredOrders)
             }
             
             override fun onCancelled(error: DatabaseError) {
@@ -59,6 +95,96 @@ class OrderRepository {
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+    
+    // Función para archivar y limpiar mensajes del chat cuando se completa una entrega
+    suspend fun archiveAndClearChat(orderId: String, deliveryId: String, customerPhone: String) {
+        try {
+            println("📦 [CHAT] Archivando mensajes del pedido: $orderId")
+            println("📦 [CHAT] Repartidor: $deliveryId, Cliente: $customerPhone")
+            
+            val messagesRef = FirebaseDatabase.getInstance().reference.child("messages")
+            val snapshot = messagesRef.get().await()
+            
+            if (snapshot.exists()) {
+                var archivedCount = 0
+                var deletedCount = 0
+                val chatMessages = mutableListOf<Map<String, Any>>()
+                
+                // Primero: Recopilar mensajes de ESTE pedido
+                snapshot.children.forEach { messageSnapshot ->
+                    val message = messageSnapshot.getValue(Message::class.java)
+                    
+                    if (message != null) {
+                        val isBetweenUsers = (
+                            (message.senderId == deliveryId && message.receiverId == customerPhone) ||
+                            (message.senderId == customerPhone && message.receiverId == deliveryId)
+                        )
+                        
+                        // Solo mensajes de ESTE pedido (por orderId)
+                        val isForThisOrder = message.orderId == orderId
+                        
+                        if (isBetweenUsers && isForThisOrder) {
+                            // Agregar a la lista para archivar
+                            chatMessages.add(mapOf(
+                                "id" to message.id,
+                                "senderId" to message.senderId,
+                                "senderName" to message.senderName,
+                                "receiverId" to message.receiverId,
+                                "receiverName" to message.receiverName,
+                                "message" to message.message,
+                                "timestamp" to message.timestamp,
+                                "isRead" to message.isRead,
+                                "messageType" to message.messageType.name,
+                                "imageUrl" to (message.imageUrl ?: "")
+                            ))
+                            archivedCount++
+                        }
+                    }
+                }
+                
+                // Segundo: Archivar en el nodo del pedido
+                if (chatMessages.isNotEmpty()) {
+                    val orderChatArchiveRef = FirebaseDatabase.getInstance()
+                        .reference
+                        .child("orders")
+                        .child(orderId)
+                        .child("chatHistory")
+                    
+                    orderChatArchiveRef.setValue(chatMessages).await()
+                    println("✅ [ARCHIVE] $archivedCount mensajes archivados en el pedido")
+                } else {
+                    println("ℹ️ [ARCHIVE] No hay mensajes para archivar")
+                }
+                
+                // Tercero: Eliminar SOLO los mensajes de ESTE pedido del chat activo
+                snapshot.children.forEach { messageSnapshot ->
+                    val message = messageSnapshot.getValue(Message::class.java)
+                    
+                    if (message != null) {
+                        val isBetweenUsers = (
+                            (message.senderId == deliveryId && message.receiverId == customerPhone) ||
+                            (message.senderId == customerPhone && message.receiverId == deliveryId)
+                        )
+                        
+                        val isForThisOrder = message.orderId == orderId
+                        
+                        if (isBetweenUsers && isForThisOrder) {
+                            messageSnapshot.ref.removeValue().await()
+                            deletedCount++
+                        }
+                    }
+                }
+                
+                println("✅ [CHAT] $deletedCount mensajes eliminados del chat activo")
+                println("📦 [CHAT] Historial guardado en: orders/$orderId/chatHistory")
+            } else {
+                println("⚠️ [CHAT] No hay mensajes en Firebase")
+            }
+        } catch (e: Exception) {
+            println("❌ [CHAT] Error al archivar y limpiar mensajes: ${e.message}")
+            e.printStackTrace()
         }
     }
     

@@ -20,12 +20,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.CircleShape
 import androidx.lifecycle.viewModelScope
-import coil.compose.AsyncImage
 import com.example.repartidor.data.model.Message
 import com.example.repartidor.ui.viewmodel.DeliveryViewModel
 import java.text.SimpleDateFormat
@@ -60,48 +60,52 @@ fun ClientChatScreen(
     var newMessage by remember { mutableStateOf("") }
     var sendingImage by remember { mutableStateOf(false) }
     
-    // Launcher para seleccionar imagen de la galería
+    // Launcher para tomar foto con la cámara
     val context = LocalContext.current
     val pickImageLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            println("📷 [DEBUG] Imagen seleccionada: $it")
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: android.graphics.Bitmap? ->
+        println("📥 [DEBUG] Launcher callback ejecutado")
+        println("📥 [DEBUG] Bitmap recibido: ${bitmap != null}")
+        
+        bitmap?.let {
+            println("📷 [DEBUG] Foto tomada con cámara: ${it.width}x${it.height}")
             sendingImage = true
             
-            // Convertir URI a Base64 y comprimir
+            // Convertir Bitmap a Base64 y comprimir
             CoroutineScope(Dispatchers.Main).launch {
                 try {
-                    val inputStream = context.contentResolver.openInputStream(it)
-                    val originalBytes = inputStream?.readBytes()
+                    // Convertir bitmap a bytes (JPEG 80% calidad)
+                    val outputStream = java.io.ByteArrayOutputStream()
+                    it.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, outputStream)
+                    val originalBytes = outputStream.toByteArray()
                     
-                    if (originalBytes != null) {
-                        println("📦 [DEBUG] Tamaño original: ${originalBytes.size} bytes")
-                        
-                        // Comprimir imagen si es mayor a 500KB
-                        val compressedBytes = if (originalBytes.size > 500 * 1024) {
-                            println("⚠️ [DEBUG] Comprimiendo imagen...")
-                            compressImage(originalBytes)
-                        } else {
-                            originalBytes
-                        }
-                        
-                        println("✅ [DEBUG] Tamaño comprimido: ${compressedBytes.size} bytes")
-                        
-                        // Convertir a Base64
-                        val base64Image = android.util.Base64.encodeToString(compressedBytes, android.util.Base64.DEFAULT)
-                        
-                        println("📤 [DEBUG] Enviando imagen comprimida (${base64Image.length} chars)")
-                        
-                        viewModel.sendImage(
-                            clientId = clientName,
-                            clientName = clientName,
-                            imageBase64 = base64Image,
-                            orderId = orderId
-                        )
-                        
-                        println("✅ [DEBUG] Imagen enviada")
+                    println("📦 [DEBUG] Tamaño original: ${originalBytes.size} bytes (${originalBytes.size / 1024} KB)")
+                    
+                    // Comprimir imagen si es mayor a 150KB
+                    val compressedBytes = if (originalBytes.size > 150 * 1024) {
+                        println("⚠️ [DEBUG] Comprimiendo imagen...")
+                        compressImageForCamera(originalBytes)
+                    } else {
+                        originalBytes
                     }
+                    
+                    println("✅ [DEBUG] Tamaño comprimido: ${compressedBytes.size} bytes (${compressedBytes.size / 1024} KB)")
+                    
+                    // Convertir a Base64 (sin saltos de línea)
+                    val base64Image = android.util.Base64.encodeToString(compressedBytes, android.util.Base64.NO_WRAP)
+                    
+                    println("📤 [DEBUG] Enviando imagen comprimida (${base64Image.length} chars)")
+                    println("📤 [DEBUG] Base64 preview: ${base64Image.substring(0, minOf(50, base64Image.length))}")
+                    
+                    viewModel.sendImage(
+                        clientId = clientName,
+                        clientName = clientName,
+                        imageBase64 = base64Image,
+                        orderId = orderId
+                    )
+                    
+                    println("✅ [DEBUG] Imagen enviada")
                 } catch (e: Exception) {
                     println("❌ [DEBUG] Error al convertir imagen: ${e.message}")
                     e.printStackTrace()
@@ -109,6 +113,8 @@ fun ClientChatScreen(
                     sendingImage = false
                 }
             }
+        } ?: run {
+            println("⚠️ [DEBUG] No se tomó ninguna foto (usuario canceló)")
         }
     }
     
@@ -219,12 +225,22 @@ fun ClientChatScreen(
                 
                 Spacer(modifier = Modifier.width(8.dp))
                 
-                // Botón para adjuntar imagen
+                // Botón para tomar foto con cámara
                 FloatingActionButton(
                     onClick = { 
+                        println("🔴 [DEBUG] Botón de cámara presionado")
+                        println("🔴 [DEBUG] sendingImage = $sendingImage")
                         if (!sendingImage) {
-                            println("📷 [DEBUG] Abriendo selector de imágenes")
-                            pickImageLauncher.launch("image/*")
+                            println("🟢 [DEBUG] Abriendo cámara...")
+                            try {
+                                pickImageLauncher.launch(null)
+                                println("✅ [DEBUG] Cámara abierta correctamente")
+                            } catch (e: Exception) {
+                                println("❌ [DEBUG] Error al abrir cámara: ${e.message}")
+                                e.printStackTrace()
+                            }
+                        } else {
+                            println("⚠️ [DEBUG] No se puede abrir, ya se está enviando una imagen")
                         }
                     },
                     containerColor = if (sendingImage) Color.Gray else MaterialTheme.colorScheme.secondary,
@@ -232,7 +248,7 @@ fun ClientChatScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.PhotoCamera,
-                        contentDescription = "Enviar imagen",
+                        contentDescription = "Tomar foto",
                         modifier = Modifier.size(20.dp),
                         tint = if (sendingImage) Color.DarkGray else Color.Unspecified
                     )
@@ -308,15 +324,53 @@ fun MessageBubble(
             ) {
                 // Si es imagen, mostrarla primero
                 if (message.messageType == com.example.repartidor.data.model.MessageType.IMAGE && !message.imageUrl.isNullOrEmpty()) {
-                    coil.compose.AsyncImage(
-                        model = message.imageUrl,
-                        contentDescription = "Imagen enviada",
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .heightIn(max = 250.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
-                    )
+                    println("🖼️ [DEBUG] Cargando imagen:")
+                    println("   ├── messageType: ${message.messageType}")
+                    println("   ├── imageUrl length: ${message.imageUrl.length}")
+                    
+                    // Extraer el Base64 del data URI
+                    val base64String = if (message.imageUrl.startsWith("data:image")) {
+                        val commaIndex = message.imageUrl.indexOf(',')
+                        if (commaIndex != -1 && commaIndex < message.imageUrl.length - 1) {
+                            message.imageUrl.substring(commaIndex + 1)
+                        } else {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                    
+                    if (base64String != null) {
+                        // Decodificar Base64 a bytes
+                        val imageBytes = android.util.Base64.decode(base64String, android.util.Base64.DEFAULT)
+                        val bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                        
+                        if (bitmap != null) {
+                            println("✅ [DEBUG] Bitmap decodificado: ${bitmap.width}x${bitmap.height}")
+                            
+                            // Usar AndroidView con ImageView nativo
+                            AndroidView(
+                                factory = { context ->
+                                    android.widget.ImageView(context).apply {
+                                        setImageBitmap(bitmap)
+                                        scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth(0.8f)
+                                    .heightIn(max = 250.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                            )
+                        } else {
+                            println("❌ [DEBUG] No se pudo decodificar el bitmap")
+                            Text(
+                                text = "⚠️ Error al cargar imagen",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                    
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 
@@ -375,6 +429,50 @@ fun compressImage(imageBytes: ByteArray): ByteArray {
     // Comprimir a JPEG 70% calidad
     val outputStream = java.io.ByteArrayOutputStream()
     resizedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
+    
+    return outputStream.toByteArray()
+}
+
+// Función para comprimir foto de la cámara
+fun compressImageForCamera(imageBytes: ByteArray): ByteArray {
+    // Decodificar bitmap
+    var bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+    
+    // Redimensionar a máximo 800px
+    val maxDimension = 800
+    var width = bitmap.width
+    var height = bitmap.height
+    
+    if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+            height = (height * maxDimension) / width
+            width = maxDimension
+        } else {
+            width = (width * maxDimension) / height
+            height = maxDimension
+        }
+        bitmap = android.graphics.Bitmap.createScaledBitmap(bitmap, width, height, true)
+        println("📐 [DEBUG] Redimensionado a ${width}x${height}")
+    }
+    
+    // Comprimir progresivamente
+    var quality = 75
+    val outputStream = java.io.ByteArrayOutputStream()
+    
+    while (quality > 20) {
+        outputStream.reset()
+        bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, quality, outputStream)
+        
+        val compressedSize = outputStream.size()
+        println("🔄 [DEBUG] Calidad: $quality%, Tamaño: ${compressedSize / 1024} KB")
+        
+        if (compressedSize <= 150 * 1024) { // 150KB
+            println("✅ [DEBUG] Tamaño objetivo alcanzado con calidad $quality%")
+            break
+        }
+        
+        quality -= 10
+    }
     
     return outputStream.toByteArray()
 }

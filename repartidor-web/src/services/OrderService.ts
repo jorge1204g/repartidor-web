@@ -79,8 +79,18 @@ class OrderService {
             orderType: order.orderType, // Leer el tipo de pedido (puede ser undefined para pedidos antiguos)
             serviceType: order.serviceType, // Tipo de servicio: MOTORCYCLE_TAXI, etc.
             pickupAddress: order.pickupAddress || '', // Dirección de origen para motocicleta
-            distance: order.distance || undefined // Distancia calculada
+            distance: order.distance || undefined, // Distancia calculada
+            itemsOriginalString: order.itemsOriginalString || null, // String original de items para motocicleta
+            additionalNotes: order.additionalNotes || order.additionalDescription || undefined, // Notas adicionales del cliente (ambos nombres)
           };
+          
+          // DEBUG: Verificar si existe itemsOriginalString
+          if (order.itemsOriginalString) {
+            console.log('✅ [ORDER SERVICE] itemsOriginalString encontrado para pedido:', orderId);
+            console.log('   Contenido:', order.itemsOriginalString.substring(0, 100));
+          } else {
+            console.log('⚠️ [ORDER SERVICE] NO hay itemsOriginalString para pedido:', orderId);
+          }
           
           ordersArray.push(orderObj);
         }
@@ -125,14 +135,14 @@ class OrderService {
         candidateDeliveryIds: []  // Limpiar candidatos una vez asignado
       };
       
-      // Actualizar en AMBAS colecciones (orders y client_orders)
-      const updatesWithPath: any = {};
-      Object.keys(updates).forEach(key => {
-        updatesWithPath[`orders/${orderId}/${key}`] = updates[key];
-        updatesWithPath[`client_orders/${orderId}/${key}`] = updates[key];  // TAMBIÉN EN CLIENT_ORDERS
-      });
+      // Aplicar actualizaciones al objeto completo del pedido
+      const updatedOrder = { ...order, ...updates };
       
-      await firebaseUpdate(ref(database), updatesWithPath);
+      // Guardar el pedido COMPLETO en AMBAS colecciones para asegurar sincronización total
+      await firebaseUpdate(ref(database), {
+        [`orders/${orderId}`]: updatedOrder,
+        [`client_orders/${orderId}`]: updatedOrder
+      });
       
       return {
         success: true,
@@ -152,10 +162,14 @@ class OrderService {
     try {
       console.log('Actualizando estado del pedido:', orderId, 'a:', newStatus);
       
-      // Obtener el pedido para verificar si es MOTORCYCLE_TAXI
+      // Obtener el pedido completo para verificar si es MOTORCYCLE_TAXI y mantener todos los campos
       const orderRef = ref(database, `orders/${orderId}`);
       const orderSnapshot = await get(orderRef);
       const order = orderSnapshot.val();
+      
+      if (!order) {
+        throw new Error('Pedido no encontrado');
+      }
       
       // Mapeo de estados para MOTORCYCLE_TAXI
       const statusMapping: { [key: string]: string } = {
@@ -174,22 +188,22 @@ class OrderService {
         finalStatus = statusMapping[newStatus];
       }
       
-      // Actualizar el estado del pedido en Firebase (AMBAS colecciones)
-      const updates: any = {};
-      updates[`orders/${orderId}/status`] = finalStatus;
-      updates[`client_orders/${orderId}/status`] = finalStatus;  // ACTUALIZAR TAMBIÉN CLIENT_ORDERS
+      // Crear una copia completa del pedido con el estado actualizado
+      const updatedOrder = { ...order };
+      updatedOrder.status = finalStatus;
       
       // Si el nuevo estado es DELIVERED, registrar el momento de entrega
       if (finalStatus === 'DELIVERED') {
-        updates[`orders/${orderId}/deliveredAt`] = Date.now();
-        updates[`client_orders/${orderId}/deliveredAt`] = Date.now();  // TAMBIÉN EN CLIENT_ORDERS
+        updatedOrder.deliveredAt = Date.now();
         // Agregar fecha y hora formateada de entrega
-        const deliveredDateTimeString = new Date().toLocaleString();
-        updates[`orders/${orderId}/deliveredDateTime`] = deliveredDateTimeString;
-        updates[`client_orders/${orderId}/deliveredDateTime`] = deliveredDateTimeString;  // TAMBIÉN EN CLIENT_ORDERS
+        updatedOrder.deliveredDateTime = new Date().toLocaleString();
       }
       
-      await firebaseUpdate(ref(database), updates);
+      // Guardar el pedido COMPLETO actualizado en AMBAS colecciones
+      await firebaseUpdate(ref(database), {
+        [`orders/${orderId}`]: updatedOrder,
+        [`client_orders/${orderId}`]: updatedOrder
+      });
       
       console.log('✅ Estado actualizado:', finalStatus);
       
@@ -267,7 +281,12 @@ class OrderService {
               candidateDeliveryIds: Array.isArray(order.candidateDeliveryIds) ? order.candidateDeliveryIds : [],
               createdAt: order.createdAt || Date.now(),
               deliveredAt: order.deliveredAt || null,
-              orderType: order.orderType // Leer el tipo de pedido (puede ser undefined para pedidos antiguos)
+              orderType: order.orderType, // Leer el tipo de pedido (puede ser undefined para pedidos antiguos)
+              serviceType: order.serviceType, // Tipo de servicio: MOTORCYCLE_TAXI, etc.
+              pickupAddress: order.pickupAddress || '', // Dirección de origen para motocicleta
+              distance: order.distance || undefined, // Distancia calculada
+              itemsOriginalString: order.itemsOriginalString || null, // String original de items para motocicleta
+              additionalNotes: order.additionalNotes || order.additionalDescription || undefined, // Notas adicionales del cliente (ambos nombres)
             };
             
             ordersArray.push(orderObj);
@@ -364,7 +383,12 @@ class OrderService {
               createdAt: order.createdAt || Date.now(),
               deliveredAt: order.deliveredAt || null,
               restaurantMapUrl: order.restaurantMapUrl || '',
-              orderType: order.orderType
+              orderType: order.orderType,
+              serviceType: order.serviceType,
+              pickupAddress: order.pickupAddress || '',
+              distance: order.distance || undefined,
+              itemsOriginalString: order.itemsOriginalString || null,
+              additionalNotes: order.additionalNotes || order.additionalDescription || undefined,
             };
             
             acceptedOrders.push(orderObj);

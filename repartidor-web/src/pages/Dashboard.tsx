@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import AuthService from '../services/AuthService';
 import OrderService from '../services/OrderService';
 import PresenceService from '../services/PresenceService';
+import LocationService from '../services/LocationService';
 import { Order, OrderStatus } from '../types/Order';
 import { DeliveryPerson } from '../types/DeliveryPerson';
 import { useMessage } from '../contexts/MessageContext';
@@ -183,17 +184,65 @@ const Dashboard: React.FC = () => {
           
           // Actualizar estado de presencia
           await PresenceService.updatePresence(deliveryId, authResponse.deliveryPerson.isOnline, true);
+          
+          // SOLICITAR PERMISO DE UBICACIÓN E INICIAR RASTREO
+          console.log('📍 [UBICACIÓN] Iniciando servicio de geolocalización...');
+          const locationStarted = await LocationService.startTracking(deliveryId);
+          if (locationStarted) {
+            console.log('✅ [UBICACIÓN] Rastreo de ubicación activo');
+          } else {
+            console.warn('⚠️ [UBICACIÓN] No se pudo iniciar el rastreo de ubicación');
+          }
         }
 
         // Obtener órdenes iniciales
+        console.log('📦 [CACHE] Cargando órdenes iniciales...');
         const initialOrders = await OrderService.getAssignedOrders(deliveryId);
+        
+        // Si hay caché local, usarlo inmediatamente para mostrar datos al usuario
+        try {
+          const cachedOrdersStr = localStorage.getItem('cachedOrders');
+          const cachedTimestamp = localStorage.getItem('cachedOrdersTimestamp');
+          
+          if (cachedOrdersStr && cachedTimestamp) {
+            const cachedOrders = JSON.parse(cachedOrdersStr);
+            const cacheAge = Date.now() - parseInt(cachedTimestamp);
+            
+            // Usar caché si tiene menos de 5 minutos
+            if (cachedOrders.length > 0 && cacheAge < 5 * 60 * 1000) {
+              console.log('✅ [CACHE] Usando caché local de hace', Math.round(cacheAge / 1000), 'segundos');
+              console.log('📦 [CACHE]', cachedOrders.length, 'pedidos en caché');
+              
+              // Mostrar caché inmediatamente
+              setOrders(cachedOrders);
+              calculateEarnings(cachedOrders);
+            } else {
+              console.log('⚠️ [CACHE] Caché muy antiguo, ignorando');
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ [CACHE] Error al leer caché:', e);
+        }
+        
+        // Luego actualizar con datos frescos de Firebase
         setOrders(initialOrders);
+        calculateEarnings(initialOrders);
         
         // Calcular ganancias
         calculateEarnings(initialOrders);
         
         // Suscribirse a actualizaciones en tiempo real
         const unsubscribe = OrderService.observeOrders(deliveryId, (updatedOrders) => {
+          console.log('📦 [CACHE] Guardando', updatedOrders.length, 'pedidos en localStorage');
+          
+          // Guardar en localStorage para persistencia al recargar
+          try {
+            localStorage.setItem('cachedOrders', JSON.stringify(updatedOrders));
+            localStorage.setItem('cachedOrdersTimestamp', Date.now().toString());
+          } catch (e) {
+            console.warn('⚠️ No se pudo guardar en localStorage:', e);
+          }
+          
           setOrders(updatedOrders);
           calculateEarnings(updatedOrders);
           
@@ -231,6 +280,10 @@ const Dashboard: React.FC = () => {
           unsubscribe();
           clearInterval(accountValidationInterval);
           window.removeEventListener('new-order-detected', handleNewOrderEvent as EventListener);
+          
+          // Detener rastreo de ubicación
+          LocationService.stopTracking();
+          console.log('⏹️ [UBICACIÓN] Rastreo de ubicación detenido');
         };
       } catch (err: any) {
         setError(err.message || 'Error al cargar el dashboard');
@@ -789,13 +842,101 @@ const Dashboard: React.FC = () => {
                         <div style={{ fontSize: '13px', color: '#FFF', marginTop: '8px', padding: '12px', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
                           {(() => {
                             console.log('🏍️ DEBUG items:', typeof order.items, order.items);
-                            // Si items es un string, formatearlo bonito
+                            
+                            // PRIMERO: Intentar usar itemsOriginalString si existe
+                            const orderAny = order as any;
+                            if (orderAny.itemsOriginalString && typeof orderAny.itemsOriginalString === 'string') {
+                              console.log('✅ [MOTOCICLETA] Usando itemsOriginalString');
+                              const lines = orderAny.itemsOriginalString.split('\n').filter((line: string) => line.trim());
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  {lines.map((line: string, idx: number) => {
+                                    // Detectar el tipo de línea y aplicar estilo apropiado
+                                    if (line.includes('🚩 Origen:')) {
+                                      return (
+                                        <div key={idx} style={{ 
+                                          display: 'flex', 
+                                          alignItems: 'flex-start',
+                                          gap: '8px',
+                                          padding: '6px 8px',
+                                          background: 'rgba(34, 197, 94, 0.1)',
+                                          borderRadius: '6px',
+                                          borderLeft: '3px solid #22c55e'
+                                        }}>
+                                          <span style={{ fontSize: '16px' }}>🚩</span>
+                                          <div>
+                                            <div style={{ fontSize: '11px', color: '#22c55e', fontWeight: '600', marginBottom: '2px' }}>PUNTO DE PARTIDA:</div>
+                                            <div style={{ fontSize: '13px', color: '#FFF' }}>{line.replace('🚩 Origen:', '').trim()}</div>
+                                          </div>
+                                        </div>
+                                      );
+                                    } else if (line.includes('🏁 Destino:')) {
+                                      return (
+                                        <div key={idx} style={{ 
+                                          display: 'flex', 
+                                          alignItems: 'flex-start',
+                                          gap: '8px',
+                                          padding: '6px 8px',
+                                          background: 'rgba(239, 68, 68, 0.1)',
+                                          borderRadius: '6px',
+                                          borderLeft: '3px solid #ef4444'
+                                        }}>
+                                          <span style={{ fontSize: '16px' }}>🏁</span>
+                                          <div>
+                                            <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: '600', marginBottom: '2px' }}>DESTINO:</div>
+                                            <div style={{ fontSize: '13px', color: '#FFF' }}>{line.replace('🏁 Destino:', '').trim()}</div>
+                                          </div>
+                                        </div>
+                                      );
+                                    } else if (line.includes('📝 Descripción:')) {
+                                      return (
+                                        <div key={idx} style={{ 
+                                          padding: '6px 8px',
+                                          background: 'rgba(168, 85, 247, 0.1)',
+                                          borderRadius: '6px',
+                                          borderLeft: '3px solid #a855f7',
+                                          fontSize: '12px',
+                                          color: '#e9d5ff',
+                                          fontStyle: 'italic'
+                                        }}>
+                                          {line.replace('📝 Descripción:', '').trim()}
+                                        </div>
+                                      );
+                                    } else if (line.includes('Servicio de Motocicleta')) {
+                                      return null; // No mostrar esta línea, ya tenemos el título
+                                    } else {
+                                      return (
+                                        <div key={idx} style={{ fontSize: '13px', color: '#FFF', padding: '2px 0' }}>
+                                          {line}
+                                        </div>
+                                      );
+                                    }
+                                  })}
+                                  {order.distance && (
+                                    <div style={{ 
+                                      marginTop: '4px',
+                                      padding: '4px 8px',
+                                      background: 'rgba(59, 130, 246, 0.2)',
+                                      borderRadius: '4px',
+                                      fontSize: '12px',
+                                      color: '#93c5fd',
+                                      textAlign: 'center',
+                                      fontWeight: '600'
+                                    }}>
+                                      📏 Distancia: {order.distance} km
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                            
+                            // SEGUNDO: Si no hay itemsOriginalString, usar el método antiguo con items array
                             const itemsStr = order.items as any;
                             if (typeof itemsStr === 'string') {
                               const lines = itemsStr.split('\n').filter((line: string) => line.trim());
                               return (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                  {lines.map((line, idx) => {
+                                  {lines.map((line: string, idx: number) => {
                                     // Detectar el tipo de línea y aplicar estilo apropiado
                                     if (line.includes('🚩 Origen:')) {
                                       return (
@@ -927,6 +1068,38 @@ const Dashboard: React.FC = () => {
                       })()}
                     </div>
                     
+                    {/* Mostrar notas adicionales del cliente si existen */}
+                    {order.additionalNotes && (
+                      <div style={{ 
+                        marginTop: '12px', 
+                        padding: '12px', 
+                        background: 'rgba(255, 243, 205, 0.15)', 
+                        borderRadius: '12px', 
+                        border: '1px solid rgba(255, 193, 7, 0.4)',
+                        borderLeft: '4px solid #ffc107'
+                      }}>
+                        <div style={{ 
+                          fontSize: '13px', 
+                          fontWeight: '600', 
+                          color: '#ffc107', 
+                          marginBottom: '6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          💬 Notas del Cliente:
+                        </div>
+                        <div style={{ 
+                          fontSize: '13px', 
+                          color: '#FFF', 
+                          lineHeight: '1.6',
+                          whiteSpace: 'pre-wrap'
+                        }}>
+                          {order.additionalNotes}
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* DEBUG: Ver serviceType en consola */}
                     {(() => {
                       console.log('🔍 Pedido:', order.orderId, '| serviceType:', order.serviceType, '| status:', order.status);
@@ -940,10 +1113,15 @@ const Dashboard: React.FC = () => {
                         <div style={{ marginBottom: '8px', padding: '12px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', border: '2px solid #3b82f6' }}>
                           <div style={{ color: '#bfdbfe', fontSize: '12px', marginBottom: '8px', fontWeight: '700' }}>🏍️ SERVICIO DE MOTOCICLETA - Pasajero</div>
                           
-                          {/* Mostrar direcciones desde items si tiene el formato correcto */}
-                          {typeof order.items === 'string' && order.items.includes('🚩 Origen:') ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              {order.items.split('\n').filter(line => line.trim()).map((line, idx) => {
+                          {/* Mostrar direcciones desde itemsOriginalString o items si tiene el formato correcto */}
+                          {(() => {
+                            const orderAny2 = order as any;
+                            const itemsToUse = orderAny2.itemsOriginalString || (typeof order.items === 'string' ? order.items : null);
+                            
+                            if (itemsToUse && itemsToUse.includes('🚩 Origen:')) {
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {itemsToUse.split('\n').filter((line: string) => line.trim()).map((line: string, idx: number) => {
                                 if (line.includes('🚩 Origen:')) {
                                   return (
                                     <div key={idx} style={{ 
@@ -972,35 +1150,39 @@ const Dashboard: React.FC = () => {
                                 return null;
                               })}
                             </div>
-                          ) : (
+                              );
+                            }
+                            
                             // Fallback para pedidos antiguos sin formato correcto
-                            <>
-                              {/* Punto de Partida */}
-                              <div style={{ marginBottom: '12px' }}>
-                                <p style={{ margin: '4px 0', fontSize: '13px', color: '#FFF', fontWeight: '600' }}>
-                                  <span style={{ color: '#60a5fa', marginRight: '4px' }}>🚩</span> 
-                                  PUNTO DE PARTIDA:
-                                </p>
-                                <p style={{ margin: '4px 0', fontSize: '14px', color: '#e5e7eb' }}>
-                                  {(() => {
-                                    const orderAny = order as any;
-                                    return orderAny.pickupAddress || orderAny.clientAddress || order.pickupLocationUrl || 'Por definir';
-                                  })()}
-                                </p>
-                              </div>
-                              
-                              {/* Destino */}
-                              <div style={{ marginBottom: '12px' }}>
-                                <p style={{ margin: '4px 0', fontSize: '13px', color: '#FFF', fontWeight: '600' }}>
-                                  <span style={{ color: '#ef4444', marginRight: '4px' }}>🏁</span> 
-                                  DESTINO:
-                                </p>
-                                <p style={{ margin: '4px 0', fontSize: '14px', color: '#e5e7eb' }}>
-                                  {order.deliveryAddress || 'Por definir'}
-                                </p>
-                              </div>
-                            </>
-                          )}
+                            return (
+                              <>
+                                {/* Punto de Partida */}
+                                <div style={{ marginBottom: '12px' }}>
+                                  <p style={{ margin: '4px 0', fontSize: '13px', color: '#FFF', fontWeight: '600' }}>
+                                    <span style={{ color: '#60a5fa', marginRight: '4px' }}>🚩</span> 
+                                    PUNTO DE PARTIDA:
+                                  </p>
+                                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#e5e7eb' }}>
+                                    {(() => {
+                                      const orderAny = order as any;
+                                      return orderAny.pickupAddress || orderAny.clientAddress || order.pickupLocationUrl || 'Por definir';
+                                    })()}
+                                  </p>
+                                </div>
+                                
+                                {/* Destino */}
+                                <div style={{ marginBottom: '12px' }}>
+                                  <p style={{ margin: '4px 0', fontSize: '13px', color: '#FFF', fontWeight: '600' }}>
+                                    <span style={{ color: '#ef4444', marginRight: '4px' }}>🏁</span> 
+                                    DESTINO:
+                                  </p>
+                                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#e5e7eb' }}>
+                                    {order.deliveryAddress || 'Por definir'}
+                                  </p>
+                                </div>
+                              </>
+                            );
+                          })()}
                           
                           {/* Botón Llamar al Cliente - Gradiente Azul */}
                           <button
@@ -1043,7 +1225,8 @@ const Dashboard: React.FC = () => {
                               let pickupAddress = '';
                               
                               if (typeof order.items === 'string') {
-                                const origenMatch = order.items.match(/🚩 Origen:\s*(.*)/);
+                                const itemsStr = order.items as string;
+                                const origenMatch = itemsStr.match(/🚩 Origen:\s*(.*)/);
                                 if (origenMatch && origenMatch[1]) {
                                   pickupAddress = origenMatch[1].trim();
                                 }
@@ -1159,7 +1342,8 @@ const Dashboard: React.FC = () => {
                             
                             // Intentar extraer desde items si es string
                             if (typeof order.items === 'string') {
-                              const origenMatch = order.items.match(/🚩 Origen:\s*(.*)/);
+                              const itemsStr = order.items as string;
+                              const origenMatch = itemsStr.match(/🚩 Origen:\s*(.*)/);
                               if (origenMatch && origenMatch[1]) {
                                 pickupAddress = origenMatch[1].trim();
                               }
@@ -1184,7 +1368,8 @@ const Dashboard: React.FC = () => {
                             
                             // Intentar extraer desde items si es string
                             if (typeof order.items === 'string') {
-                              const destinoMatch = order.items.match(/🏁 Destino:\s*(.*)/);
+                              const itemsStr = order.items as string;
+                              const destinoMatch = itemsStr.match(/🏁 Destino:\s*(.*)/);
                               if (destinoMatch && destinoMatch[1]) {
                                 destinationAddress = destinoMatch[1].trim();
                               }
@@ -1358,21 +1543,41 @@ const Dashboard: React.FC = () => {
                                   const orderAny = order as any;
                                   let address = '';
                                   
-                                  // Primero intentar extraer desde items si tiene el formato correcto
-                                  if (typeof order.items === 'string') {
-                                    const origenMatch = order.items.match(/🚩 Origen:\s*(.*)/);
+                                  // PRIMERO: Intentar extraer desde itemsOriginalString
+                                  if (orderAny.itemsOriginalString && typeof orderAny.itemsOriginalString === 'string') {
+                                    const origenMatch = orderAny.itemsOriginalString.match(/🚩 Origen:\s*(.*)/);
                                     if (origenMatch && origenMatch[1]) {
                                       address = origenMatch[1].trim();
                                     }
                                   }
                                   
-                                  // Si no se encontró en items, usar los campos tradicionales
+                                  // SEGUNDO: Intentar extraer desde items array (items[0].name)
+                                  if (!address && order.items && order.items.length > 0) {
+                                    const itemsStr = order.items[0].name;
+                                    if (typeof itemsStr === 'string') {
+                                      const origenMatch = itemsStr.match(/🚩 Origen:\s*(.*)/);
+                                      if (origenMatch && origenMatch[1]) {
+                                        address = origenMatch[1].trim();
+                                      }
+                                    }
+                                  }
+                                  
+                                  // TERCERO: Intentar extraer desde items si es string
+                                  if (!address && typeof order.items === 'string') {
+                                    const itemsStr = order.items as string;
+                                    const origenMatch = itemsStr.match(/🚩 Origen:\s*(.*)/);
+                                    if (origenMatch && origenMatch[1]) {
+                                      address = origenMatch[1].trim();
+                                    }
+                                  }
+                                  
+                                  // CUARTO: Usar los campos tradicionales
                                   if (!address) {
                                     address = orderAny.pickupAddress || orderAny.clientAddress || order.customer?.address || '';
                                   }
                                   
                                   // DEBUG: Mostrar qué dirección se está usando
-                                  console.log('🚩 [BOTÓN #2.3] Extrayendo de items:', typeof order.items === 'string' ? order.items.substring(0, 100) : 'NO STRING');
+                                  console.log('🚩 [BOTÓN #2.3] Usando dirección:', address.substring(0, 50));
                                   console.log('🚩 [BOTÓN #2.3] pickupAddress:', orderAny.pickupAddress);
                                   console.log('🚩 [BOTÓN #2.3] clientAddress:', orderAny.clientAddress);
                                   console.log('🚩 [BOTÓN #2.3] customer.address:', order.customer?.address);
@@ -1451,15 +1656,46 @@ const Dashboard: React.FC = () => {
                                 {(() => {
                                   // Extraer dirección de destino del items o usar deliveryAddress
                                   const orderAny = order as any;
-                                  let destinationAddress = order.deliveryAddress || '';
+                                  let destinationAddress = '';
                                   
-                                  // Si items es un string, extraer el destino
-                                  if (typeof order.items === 'string') {
-                                    const destinoMatch = order.items.match(/🏁 Destino:\s*(.*)/);
+                                  // PRIMERO: Intentar extraer desde itemsOriginalString
+                                  if (orderAny.itemsOriginalString && typeof orderAny.itemsOriginalString === 'string') {
+                                    const destinoMatch = orderAny.itemsOriginalString.match(/🏁 Destino:\s*(.*)/);
                                     if (destinoMatch && destinoMatch[1]) {
                                       destinationAddress = destinoMatch[1].trim();
                                     }
                                   }
+                                  
+                                  // SEGUNDO: Intentar extraer desde items array (items[0].name)
+                                  if (!destinationAddress && order.items && order.items.length > 0) {
+                                    const itemsStr = order.items[0].name;
+                                    if (typeof itemsStr === 'string') {
+                                      const destinoMatch = itemsStr.match(/🏁 Destino:\s*(.*)/);
+                                      if (destinoMatch && destinoMatch[1]) {
+                                        destinationAddress = destinoMatch[1].trim();
+                                      }
+                                    }
+                                  }
+                                  
+                                  // TERCERO: Intentar extraer desde items si es string
+                                  if (!destinationAddress && typeof order.items === 'string') {
+                                    const itemsStr = order.items as string;
+                                    const destinoMatch = itemsStr.match(/🏁 Destino:\s*(.*)/);
+                                    if (destinoMatch && destinoMatch[1]) {
+                                      destinationAddress = destinoMatch[1].trim();
+                                    }
+                                  }
+                                  
+                                  // CUARTO: Usar deliveryAddress como fallback
+                                  if (!destinationAddress) {
+                                    destinationAddress = order.deliveryAddress || '';
+                                  }
+                                  
+                                  // DEBUG: Mostrar qué dirección se está usando
+                                  console.log('🏁 [BOTÓN #2.4] itemsOriginalString:', orderAny.itemsOriginalString ? orderAny.itemsOriginalString.substring(0, 100) : 'NO EXISTE');
+                                  console.log('🏁 [BOTÓN #2.4] items[0].name:', order.items && order.items[0] ? order.items[0].name.substring(0, 100) : 'NO EXISTE');
+                                  console.log('🏁 [BOTÓN #2.4] deliveryAddress:', order.deliveryAddress);
+                                  console.log('🏁 [BOTÓN #2.4] Dirección final seleccionada:', destinationAddress);
                                   
                                   return destinationAddress ? (
                                     <span style={{ fontSize: '11px', opacity: 0.9, marginLeft: '26px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
@@ -1667,8 +1903,8 @@ const Dashboard: React.FC = () => {
                               {/* Botón Llamar al Cliente */}
                               <button
                                 onClick={() => {
-                                  if (order.customerPhone) {
-                                    window.open(`tel:${order.customerPhone}`, '_self');
+                                  if (order.customer?.phone) {
+                                    window.open(`tel:${order.customer.phone}`, '_self');
                                   }
                                 }}
                                 onMouseEnter={(e) => {
@@ -1710,7 +1946,8 @@ const Dashboard: React.FC = () => {
                                   let pickupAddress = '';
                                   
                                   if (typeof order.items === 'string') {
-                                    const origenMatch = order.items.match(/🚩 Origen:\s*(.*)/);
+                                    const itemsStr = order.items as string;
+                                    const origenMatch = itemsStr.match(/🚩 Origen:\s*(.*)/);
                                     if (origenMatch && origenMatch[1]) {
                                       pickupAddress = origenMatch[1].trim();
                                     }
@@ -1763,7 +2000,8 @@ const Dashboard: React.FC = () => {
                                 <span style={{ fontSize: '10px', opacity: 0.9, marginLeft: '22px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
                                   {(() => {
                                     if (typeof order.items === 'string') {
-                                      const origenMatch = order.items.match(/🚩 Origen:\s*(.*)/);
+                                      const itemsStr = order.items as string;
+                                      const origenMatch = itemsStr.match(/🚩 Origen:\s*(.*)/);
                                       if (origenMatch && origenMatch[1]) {
                                         return origenMatch[1].trim();
                                       }
@@ -1781,7 +2019,8 @@ const Dashboard: React.FC = () => {
                                   let destinationAddress = '';
                                   
                                   if (typeof order.items === 'string') {
-                                    const destinoMatch = order.items.match(/🏁 Destino:\s*(.*)/);
+                                    const itemsStr = order.items as string;
+                                    const destinoMatch = itemsStr.match(/🏁 Destino:\s*(.*)/);
                                     if (destinoMatch && destinoMatch[1]) {
                                       destinationAddress = destinoMatch[1].trim();
                                     }
@@ -1997,6 +2236,13 @@ const Dashboard: React.FC = () => {
                                       ${order.items.map(item => `<li>${item.name} x${item.quantity} ($${(item.price * item.quantity).toFixed(2)})</li>`).join('')}
                                     </ul>
                                   </div>
+                                  
+                                  ${order.additionalNotes ? `
+                                  <div style="background: rgba(255, 243, 205, 0.2); padding: 20px; border-radius: 16px; margin-bottom: 16px; border-left: 4px solid #ffc107;">
+                                    <h4 style="margin: 0 0 12px 0; color: #ffc107; font-size: 16px;">💬 Notas del Cliente</h4>
+                                    <p style="margin: 0; color: white; line-height: 1.6; font-size: 14px; white-space: pre-wrap;">${order.additionalNotes}</p>
+                                  </div>
+                                  ` : ''}
                                   
                                   <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 16px;">
                                     <h4 style="margin: 0 0 12px 0; color: #38ef7d; font-size: 16px;">💰 Información Financiera</h4>

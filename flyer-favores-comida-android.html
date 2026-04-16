@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛍️ Cómo Solicitar Favores y Comida - Android Style</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Phone Frame */
+        .phone-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: #1a1a1a;
+            border-radius: 50px;
+            padding: 12px;
+            box-shadow: 
+                0 30px 80px rgba(0,0,0,0.6),
+                0 0 0 3px #333,
+                inset 0 0 0 2px #444;
+            position: relative;
+        }
+
+        .phone-frame::before {
+            content: '';
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 28px;
+            background: #1a1a1a;
+            border-radius: 20px;
+            z-index: 100;
+            box-shadow: inset 0 0 0 2px #2a2a2a;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Android Status Bar */
+        .status-bar {
+            height: 44px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .status-icons {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        /* Presentation Area */
+        .presentation {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide {
+            display: none;
+            height: 100%;
+            animation: slideIn 0.4s ease-out;
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0; 
+                transform: translateX(30px);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0);
+            }
+        }
+
+        /* Slide 1: Intro */
+        .slide-intro {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px 30px;
+        }
+
+        .slide-intro .emoji {
+            font-size: 100px;
+            margin-bottom: 25px;
+            animation: bounce 2s infinite;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .slide-intro h1 {
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+            line-height: 1.2;
+        }
+
+        .slide-intro p {
+            font-size: 16px;
+            opacity: 0.95;
+            line-height: 1.6;
+            font-weight: 300;
+        }
+
+        /* Step Slides */
+        .slide-step {
+            background: #fafafa;
+        }
+
+        .step-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .step-number {
+            background: white;
+            color: #f093fb;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 900;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .step-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .step-content {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .step-content .icon {
+            font-size: 80px;
+            text-align: center;
+            margin-bottom: 25px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+        }
+
+        .step-content p {
+            font-size: 16px;
+            color: #495057;
+            line-height: 1.7;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .step-content .highlight {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-weight: 500;
+            color: #2d3436;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(253, 203, 110, 0.3);
+        }
+
+        /* QR Slide */
+        .slide-qr {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px 30px;
+        }
+
+        .slide-qr h2 {
+            font-size: 26px;
+            color: #2d3436;
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        .qr-container {
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            margin-bottom: 25px;
+            display: inline-block;
+        }
+
+        .slide-qr p {
+            font-size: 16px;
+            word-break: break-all;
+            color: #f093fb;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        .price-tag {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            font-size: 36px;
+            font-weight: 900;
+            margin-top: 20px;
+            box-shadow: 0 8px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        /* Android Navigation Bar */
+        .nav-bar {
+            height: 48px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            flex-shrink: 0;
+        }
+
+        .nav-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .nav-button.fullscreen-btn {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            padding: 10px 14px;
+            font-size: 16px;
+        }
+
+        .nav-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(240, 147, 251, 0.4);
+        }
+
+        .nav-button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .progress-container {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #dee2e6;
+            transition: all 0.3s;
+        }
+
+        .progress-dot.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            transform: scale(1.4);
+        }
+
+        .slide-counter {
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        /* Responsive */
+        @media (max-width: 400px) {
+            .phone-frame {
+                width: 320px;
+                height: 680px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Phone Presentation -->
+    <div class="phone-container">
+        <div class="phone-frame">
+            <div class="phone-screen">
+                <!-- Status Bar -->
+                <div class="status-bar">
+                    <span>9:41</span>
+                    <div class="status-icons">
+                        <span>📶</span>
+                        <span>📡</span>
+                        <span>🔋</span>
+                    </div>
+                </div>
+
+                <!-- Presentation -->
+                <div class="presentation">
+                    <!-- Slide 1: Intro -->
+                    <div class="slide slide-intro active">
+                        <div class="emoji">🛍️</div>
+                        <h1>Favores y Comida</h1>
+                        <p>Pide comida de tus restaurantes favoritos o solicita favores especiales</p>
+                        <div style="margin-top: 30px; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 15px; display: inline-block;">
+                            <div id="qrcode-intro"></div>
+                            <p style="color: #f093fb; font-size: 11px; margin-top: 8px; font-weight: 600; word-break: break-all;">
+                                https://cliente-web-mu.vercel.app/login
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Slide 2 -->
+                    <div class="slide slide-step">
+                        <div class="step-header">
+                            <div class="step-number">1</div>
+                            <h2>Abre la App</h2>
+                        </div>
+                        <div class="step-content">
+                            <div class="icon">📱</div>
+                            <p>Ingresa a la plataforma web del cliente con tu cuenta registrada</p>
+                            <div class="highlight">
+                                💡 Ten listo tu usuario y contraseña
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 3 -->
+                    <div class="slide slide-step">
+                        <div class="step-header">
+                            <div class="step-number">2</div>
+                            <h2>Selecciona el Servicio</h2>
+                        </div>
+                        <div class="step-content">
+                            <div class="icon">🛍️</div>
+                            <p>Toca el botón:</p>
+                            <div class="highlight">
+                                🛍️ "Favores y Comida"
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 4: Tipos de Favores -->
+                    <div class="slide slide-step">
+                        <div class="step-header">
+                            <div class="step-number">3</div>
+                            <h2>Tipos de Favores</h2>
+                        </div>
+                        <div class="step-content">
+                            <div class="icon">📋</div>
+                            <p style="text-align: left; line-height: 2; font-size: 14px;">
+                                🍔 <strong>Comida:</strong> De cualquier restaurante<br>
+                                ⛽ <strong>Gasolina:</strong> Te llevamos tu combustible<br>
+                                📝 <strong>Papelería:</strong> Todo para tu oficina<br>
+                                💊 <strong>Medicamentos:</strong> Farmacia a domicilio<br>
+                                🍺 <strong>Cervezas y Cigarros:</strong> Para tu fiesta<br>
+                                💧 <strong>Garrafones de Agua:</strong> Hidratación garantizada<br>
+                                🔥 <strong>Gas:</strong> Para tu hogar<br>
+                                📦 <strong>Pagos o Cobros:</strong> Gestiones rápidas<br>
+                                🎁 <strong>Favores:</strong> Directo a tu puerta
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Slide 5 -->
+                    <div class="slide slide-step">
+                        <div class="step-header">
+                            <div class="step-number">4</div>
+                            <h2>Tu Ubicación</h2>
+                        </div>
+                        <div class="step-content">
+                            <div class="icon">📍</div>
+                            <p>Presiona <strong>"Usar mi ubicación actual"</strong></p>
+                            <div class="highlight">
+                                📍 Activa el GPS para mayor precisión
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 6 -->
+                    <div class="slide slide-step">
+                        <div class="step-header">
+                            <div class="step-number">5</div>
+                            <h2>Describe tu Pedido</h2>
+                        </div>
+                        <div class="step-content">
+                            <div class="icon">📝</div>
+                            <p>Escribe qué necesitas: comida, mandado o favor especial</p>
+                            <div class="highlight">
+                                📝 Sé lo más específico posible
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 7 -->
+                    <div class="slide slide-step">
+                        <div class="step-header">
+                            <div class="step-number">6</div>
+                            <h2>Destino (Opcional)</h2>
+                        </div>
+                        <div class="step-content">
+                            <div class="icon">🏁</div>
+                            <p>Si necesitas entrega, escribe la dirección de destino</p>
+                            <div class="highlight">
+                                🏁 Calle, número y colonia
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 8 -->
+                    <div class="slide slide-step">
+                        <div class="step-header">
+                            <div class="step-number">7</div>
+                            <h2>Verifica tus Datos</h2>
+                        </div>
+                        <div class="step-content">
+                            <div class="icon">👤</div>
+                            <p>Confirma que tu nombre y teléfono estén correctos</p>
+                            <div class="highlight">
+                                📞 El repartidor te contactará aquí
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 9 -->
+                    <div class="slide slide-step">
+                        <div class="step-header">
+                            <div class="step-number">8</div>
+                            <h2>Método de Pago</h2>
+                        </div>
+                        <div class="step-content">
+                            <div class="icon">💳</div>
+                            <p>Elige tu método de pago:</p>
+                            <div class="highlight">
+                                💵 Pago en efectivo al repartidor
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 10 -->
+                    <div class="slide slide-step">
+                        <div class="step-header">
+                            <div class="step-number">9</div>
+                            <h2>Envía tu Pedido</h2>
+                        </div>
+                        <div class="step-content">
+                            <div class="icon">✅</div>
+                            <p>Presiona:</p>
+                            <div class="highlight">
+                                🛍️ "Solicitar Favor/Comida"
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 11 -->
+                    <div class="slide slide-step">
+                        <div class="step-header">
+                            <div class="step-number">10</div>
+                            <h2>Sigue tu Pedido</h2>
+                        </div>
+                        <div class="step-content">
+                            <div class="icon">🗺️</div>
+                            <p>Ve en el mapa cómo el repartidor se acerca en tiempo real</p>
+                            <div class="highlight">
+                                🎯 Código de 4 dígitos para confirmar
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide 11: QR -->
+                    <div class="slide slide-qr">
+                        <h2>📲 ¡Escanea y accede!</h2>
+                        <div class="qr-container">
+                            <div id="qrcode"></div>
+                        </div>
+                        <p>https://cliente-web-mu.vercel.app/login</p>
+                        <div class="price-tag">Desde $40 MXN</div>
+                    </div>
+                </div>
+
+                <!-- Navigation Bar -->
+                <div class="nav-bar">
+                    <button class="nav-button" id="prevBtn" onclick="changeSlide(-1)">
+                        ←
+                    </button>
+                    
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                        <div class="progress-container" id="progress"></div>
+                        <div class="slide-counter">
+                            <span id="currentSlide">1</span> / <span id="totalSlides">12</span>
+                        </div>
+                    </div>
+                    
+                    <button class="nav-button" id="nextBtn" onclick="changeSlide(1)">
+                        →
+                    </button>
+                    
+                    <button class="nav-button fullscreen-btn" onclick="toggleFullscreen()">
+                        ⛶ Pantalla Completa
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let autoplayInterval = null;
+        const AUTOPLAY_DELAY = 3000; // 3 segundos por pantalla (más lento)
+
+        document.getElementById('totalSlides').textContent = totalSlides;
+        createProgressDots();
+        updateSlide();
+        generateQR();
+        startAutoplay();
+
+        function changeSlide(direction) {
+            currentSlideIndex += direction;
+            
+            if (currentSlideIndex < 0) currentSlideIndex = 0;
+            if (currentSlideIndex >= totalSlides) currentSlideIndex = totalSlides - 1;
+            
+            updateSlide();
+            resetAutoplay();
+        }
+
+        function nextSlide() {
+            currentSlideIndex++;
+            if (currentSlideIndex >= totalSlides) {
+                currentSlideIndex = 0; // Volver al inicio
+            }
+            updateSlide();
+        }
+
+        function startAutoplay() {
+            stopAutoplay();
+            autoplayInterval = setInterval(() => {
+                nextSlide();
+            }, AUTOPLAY_DELAY);
+        }
+
+        function stopAutoplay() {
+            if (autoplayInterval) {
+                clearInterval(autoplayInterval);
+                autoplayInterval = null;
+            }
+        }
+
+        function resetAutoplay() {
+            stopAutoplay();
+            startAutoplay();
+        }
+
+        function updateSlide() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active');
+                if (index === currentSlideIndex) {
+                    slide.classList.add('active');
+                }
+            });
+
+            document.getElementById('prevBtn').disabled = currentSlideIndex === 0;
+            document.getElementById('nextBtn').disabled = currentSlideIndex === totalSlides - 1;
+            document.getElementById('currentSlide').textContent = currentSlideIndex + 1;
+
+            const dots = document.querySelectorAll('.progress-dot');
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentSlideIndex);
+            });
+        }
+
+        function createProgressDots() {
+            const container = document.getElementById('progress');
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'progress-dot';
+                if (i === 0) dot.classList.add('active');
+                container.appendChild(dot);
+            }
+        }
+
+        function generateQR() {
+            const url = "https://cliente-web-mu.vercel.app/login";
+            
+            // QR en la primera página (intro)
+            new QRCode(document.getElementById("qrcode-intro"), {
+                text: url,
+                width: 120,
+                height: 120,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            // QR en la última página
+            new QRCode(document.getElementById("qrcode"), {
+                text: url,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                changeSlide(1);
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                changeSlide(-1);
+            }
+        });
+
+        // Swipe support
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                changeSlide(diff > 0 ? 1 : -1);
+            }
+        }
+
+        // Pantalla completa
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Error al entrar en pantalla completa:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+    </script>
+</body>
+</html>

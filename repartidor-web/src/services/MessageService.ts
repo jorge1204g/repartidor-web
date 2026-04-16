@@ -160,7 +160,8 @@ class MessageService {
                 message: msg.message || '',
                 timestamp: msg.timestamp || Date.now(),
                 isRead: msg.isRead || false,
-                messageType: msg.messageType || 'TEXT'
+                messageType: msg.messageType || 'TEXT',
+                imageUrl: msg.imageUrl // ⚠️ IMPORTANTE: Incluir imageUrl
               });
             }
           }
@@ -225,7 +226,8 @@ class MessageService {
             message: message.message || '',
             timestamp: message.timestamp || Date.now(),
             isRead: message.isRead || false,
-            messageType: message.messageType || 'TEXT'
+            messageType: message.messageType || 'TEXT',
+            imageUrl: message.imageUrl // ⚠️ IMPORTANTE: Incluir imageUrl
           };
           
           messagesArray.push(messageObj);
@@ -278,7 +280,8 @@ class MessageService {
               message: message.message || '',
               timestamp: message.timestamp || Date.now(),
               isRead: message.isRead || false,
-              messageType: message.messageType || 'TEXT'
+              messageType: message.messageType || 'TEXT',
+              imageUrl: message.imageUrl // ⚠️ IMPORTANTE: Incluir imageUrl
             };
             
             messagesArray.push(messageObj);
@@ -354,7 +357,8 @@ class MessageService {
             message: message.message || '',
             timestamp: message.timestamp || Date.now(),
             isRead: message.isRead || false,
-            messageType: message.messageType || 'TEXT'
+            messageType: message.messageType || 'TEXT',
+            imageUrl: message.imageUrl // ⚠️ IMPORTANTE: Incluir imageUrl
           };
           
           unreadMessages.push(messageObj);

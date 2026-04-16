@@ -191,7 +191,7 @@ const Login: React.FC = () => {
           <p style={{ 
             fontSize: '0.875rem', 
             color: 'var(--text-muted)',
-            margin: 0
+            margin: '0 0 1rem 0'
           }}>
             💡 ID predeterminado: <code style={{ 
               background: 'var(--bg-secondary)',
@@ -202,6 +202,35 @@ const Login: React.FC = () => {
               fontSize: '0.8125rem'
             }}>restaurante1</code>
           </p>
+          <div style={{ 
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            paddingTop: '1rem',
+            marginTop: '1rem'
+          }}>
+            <p style={{ 
+              fontSize: '0.875rem', 
+              color: 'var(--text-muted)',
+              margin: '0 0 0.75rem 0'
+            }}>
+              ¿Eres restaurante y no tienes repartidor?
+            </p>
+            <button
+              onClick={() => navigate('/registro')}
+              style={{
+                background: 'var(--primary-gradient)',
+                color: 'white',
+                border: 'none',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                boxShadow: 'var(--shadow-md)'
+              }}
+            >
+              📝 Registrarme aquí
+            </button>
+          </div>
         </div>
       </div>
     </div>

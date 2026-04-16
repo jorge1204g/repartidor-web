@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarjeta de Presentación - Favores y Comida en Fresnillo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card-container {
+            max-width: 15cm;
+            width: 15cm;
+        }
+
+        .card {
+            background: #0a0a0a;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 2px #333;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #333;
+            width: 15cm;
+            height: 11cm;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .left-section {
+            flex: 1;
+            background: #0a0a0a;
+            color: white;
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border-right: 2px solid #333;
+        }
+
+        .left-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 107, 53, 0.05) 50%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .right-section {
+            flex: 1.2;
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: #0a0a0a;
+        }
+
+        .header-icon {
+            font-size: 80px;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 4px 8px rgba(255, 107, 53, 0.3));
+        }
+
+        .left-section h1 {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ff6b35;
+        }
+
+        .left-section .subtitle {
+            font-size: 18px;
+            opacity: 0.8;
+            margin-bottom: 25px;
+            font-weight: 300;
+            color: #b0b0b0;
+        }
+
+        .content {
+            padding: 0;
+        }
+
+        .description {
+            color: #e0e0e0;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .description strong {
+            color: #ff6b35;
+        }
+
+        .qr-section {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .qr-code {
+            background: white;
+            padding: 15px;
+            display: inline-block;
+            border-radius: 10px;
+            border: 3px solid #ff6b35;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .qr-code img {
+            width: 180px;
+            height: 180px;
+            display: block;
+        }
+
+        .qr-section h3 {
+            color: #ff6b35 !important;
+            font-weight: bold;
+        }
+
+        .qr-text {
+            color: #b0b0b0;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .link-section {
+            background: #1a1a1a;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+
+        .link-section p {
+            color: #b0b0b0;
+        }
+
+        .link-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .link-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+
+        .features {
+            margin: 15px 0;
+            padding: 0;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .feature-icon {
+            font-size: 22px;
+            margin-right: 10px;
+            width: 30px;
+            filter: drop-shadow(0 2px 4px rgba(255, 107, 53, 0.3));
+        }
+
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        .social-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .social-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .social-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .social-info {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #b0b0b0;
+            font-weight: 500;
+        }
+
+        .social-qr {
+            margin-top: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .whatsapp-btn {
+            background: #25D366;
+            color: white;
+        }
+
+        .facebook-btn {
+            background: #1877F2;
+            color: white;
+        }
+
+        .local-btn {
+            background: linear-gradient(135deg, #9C27B0 0%, #E040FB 100%);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                flex-direction: column;
+            }
+
+            .left-section,
+            .right-section {
+                padding: 35px;
+            }
+
+            .header-icon {
+                font-size: 60px;
+            }
+
+            .left-section h1 {
+                font-size: 24px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .left-section,
+            .right-section {
+                padding: 25px;
+            }
+
+            .left-section h1 {
+                font-size: 20px;
+            }
+
+            .qr-code img {
+                width: 160px;
+                height: 160px;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .card-container {
+                width: 15cm;
+                max-width: 15cm;
+            }
+
+            .card {
+                width: 15cm;
+                height: 11cm;
+                box-shadow: none;
+                border: 1px solid #000;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card-container">
+        <div class="card">
+            <div style="background: #0a0a0a; padding: 8px; text-align: center; border-bottom: 2px solid #333;">
+                <div class="header-icon" style="font-size: 50px; margin-bottom: 3px;">🛍️</div>
+                <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 2px; color: #ff6b35;">Favores y Comida</h1>
+                <p style="font-size: 12px; opacity: 0.8; color: #b0b0b0; margin: 0;">Pide comida de tus restaurantes favoritos o solicita favores especiales</p>
+            </div>
+
+            <div style="display: flex; flex-direction: row; flex: 1;">
+                <div class="left-section" style="flex: 1; padding: 15px; display: flex; flex-direction: column; justify-content: center;">
+                    <div class="description" style="color: #e0e0e0; font-size: 11px; line-height: 1.4; text-align: center; margin-bottom: 10px;">
+                        <strong style="color: #ff6b35;">Compras, mandados y más.</strong><br>
+                        Todo lo que necesitas, te lo llevamos.
+                    </div>
+
+                    <div class="qr-section" style="text-align: center;">
+                        <h3 style="margin-bottom: 8px; color: #ff6b35; font-size: 13px; font-weight: bold;">Escanea el QR para solicitar tu servicio</h3>
+                        <div class="qr-code" style="background: white; padding: 8px; display: inline-block; border-radius: 8px; border: 3px solid #ff6b35;">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://cliente-web-mu.vercel.app/login" alt="QR Code - Favores y Comida" style="width: 90px; height: 90px; display: block;">
+                        </div>
+                        <p style="color: #b0b0b0; font-size: 9px; margin-top: 5px;">📱 Escanea con la cámara de tu teléfono</p>
+                    </div>
+                </div>
+
+                <div class="right-section" style="flex: 1; padding: 15px; background: #0a0a0a; display: flex; flex-direction: column; justify-content: center;">
+                    <div class="link-section" style="padding: 10px;">
+                        <div class="social-buttons" style="display: flex; gap: 15px; justify-content: center; align-items: center;">
+                            <div style="text-align: center;">
+                                <a href="https://wa.me/524931740000" target="_blank" class="social-btn whatsapp-btn" style="display: inline-flex; align-items: center; gap: 5px; padding: 8px 15px; border-radius: 25px; text-decoration: none; font-weight: bold; font-size: 11px; background: #25D366; color: white;">
+                                    💬 WhatsApp
+                                </a>
+                                <p style="margin-top: 5px; font-size: 10px; color: #b0b0b0;">493 174 0000</p>
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://wa.me/524931740000&bgcolor=000000&color=ffffff" alt="QR WhatsApp" style="margin-top: 5px; width: 60px; height: 60px; border-radius: 5px;">
+                            </div>
+                            <div style="text-align: center;">
+                                <a href="https://www.facebook.com/profile.php?id=61577786821371" target="_blank" class="social-btn facebook-btn" style="display: inline-flex; align-items: center; gap: 5px; padding: 8px 15px; border-radius: 25px; text-decoration: none; font-weight: bold; font-size: 11px; background: #1877F2; color: white;">
+                                    👍 Facebook
+                                </a>
+                                <p style="margin-top: 5px; font-size: 10px; color: #b0b0b0;">Click Entrega</p>
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://www.facebook.com/profile.php?id=61577786821371&bgcolor=000000&color=ffffff" alt="QR Facebook" style="margin-top: 5px; width: 60px; height: 60px; border-radius: 5px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer" style="margin-top: 20px; border-radius: 0 0 20px 20px;">
+            <p>© 2026 Favores y Comida en Fresnillo - Todos los derechos reservados</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -36,6 +36,21 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            // TEXTO DE PRUEBA PARA VERIFICAR COMPILACIÓN
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Text(
+                    text = "🎉 ¡BIENVENIDOS A TODOS! 🎉\n✅ Versión compilada correctamente",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            
             // Title
             Text(
                 text = "¡Hola Repartidor!",

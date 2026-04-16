@@ -121,19 +121,7 @@ class DeliveryViewModel : ViewModel() {
                     onSuccess = {
                         _errorMessage.value = "Estado del pedido actualizado a: $newStatus"
                         
-                        // Enviar notificación al administrador sobre el cambio de estado
-                        val statusMessage = when (newStatus) {
-                            "ON_THE_WAY_TO_STORE" -> "Repartidor en camino al restaurante"
-                            "ARRIVED_AT_STORE" -> "Repartidor llegó al restaurante"
-                            "PICKING_UP_ORDER" -> "Repartidor recogiendo pedido"
-                            "ON_THE_WAY_TO_CUSTOMER" -> "Repartidor en camino a la entrega"
-                            "DELIVERED" -> "Pedido entregado"
-                            else -> "Estado actualizado: $newStatus"
-                        }
-                        
-                        // Enviar mensaje al administrador
-                        sendMessage("admin", "Administrador", "Pedido $orderId - $statusMessage")
-                        
+                        // NOTA: Se quitó la notificación al administrador para evitar spam de mensajes
                         // Enviar notificación por WhatsApp al cliente si está disponible
                         if (order != null && order.customer.phone.isNotEmpty()) {
                             val clientStatusMessage = when (newStatus) {
@@ -200,6 +188,13 @@ class DeliveryViewModel : ViewModel() {
                 // Actualizar el estado del pedido
                 updateOrderStatus(orderId, "DELIVERED")
                 
+                // Limpiar mensajes del chat entre repartidor y cliente
+                val deliveryId = _deliveryId.value
+                val customerPhone = order.customer.phone
+                if (!deliveryId.isNullOrEmpty() && customerPhone.isNotEmpty()) {
+                    orderRepository.archiveAndClearChat(orderId, deliveryId, customerPhone)
+                }
+                
                 // Esperar brevemente para asegurar que la actualización se procese
                 delay(100)
                 
@@ -242,7 +237,8 @@ class DeliveryViewModel : ViewModel() {
             val assignedToId = orderSnapshot.child("assignedToDeliveryId").getValue(String::class.java) ?: ""
             
             // Verificar que el pedido esté disponible para aceptar
-            if (currentStatus == "MANUAL_ASSIGNED" && assignedToId.isEmpty()) {
+            // Aceptar pedidos MANUAL_ASSIGNED, ASSIGNED o PENDING sin repartidor asignado
+            if (currentStatus in listOf("MANUAL_ASSIGNED", "ASSIGNED", "PENDING") && assignedToId.isEmpty()) {
                 val updates = mapOf(
                     "assignedToDeliveryId" to deliveryPerson.id,
                     "assignedToDeliveryName" to deliveryPerson.name,
@@ -317,10 +313,6 @@ class DeliveryViewModel : ViewModel() {
     private val _dailyOrdersCount = MutableStateFlow<Int>(0)
     val dailyOrdersCount: StateFlow<Int> = _dailyOrdersCount.asStateFlow()
     
-    // Tracking de pedidos para detectar nuevos (igual que AdminViewModel)
-    private var lastOrderCount = 0
-    private var lastActiveOrderCount = 0
-    
     init {
         println("🔔 [INIT] DeliveryViewModel creado, inicializando observadores...")
         observeAssignedOrdersGlobal()
@@ -333,18 +325,6 @@ class DeliveryViewModel : ViewModel() {
         this.sharedPreferences = context.getSharedPreferences("delivery_prefs", Context.MODE_PRIVATE)
         println("🔔 SoundNotificationService initialized with context")
         loadSavedId()
-        
-        // Observar cambios en los pedidos para detectar nuevos (IGUAL QUE ADMINISTRADOR)
-        viewModelScope.launch {
-            _orders.collect { orders ->
-                val activeOrders = orders.filter { order ->
-                    order.status != "DELIVERED"
-                }
-                
-                // Detectar si hay un pedido nuevo activo
-                detectNewOrder(orders, activeOrders)
-            }
-        }
         
         // Cargar estado actual de conexión desde Firebase al inicializar
         _deliveryId.value?.let { deliveryId ->
@@ -606,11 +586,17 @@ class DeliveryViewModel : ViewModel() {
     private fun loadSavedId() {
         sharedPreferences?.let { prefs ->
             val savedId = prefs.getString("delivery_id", null)
+            println("🔔 [VIEWMODEL] loadSavedId - savedId: '$savedId'")
             savedId?.let { id ->
                 _deliveryId.value = id
+                println("🔔 [VIEWMODEL] deliveryId establecido: '$id'")
                 // Load person data from Firebase
                 loadDeliveryPersonFromFirebase(id)
+            } ?: run {
+                println("⚠️ [VIEWMODEL] No hay deliveryId guardado en SharedPreferences")
             }
+        } ?: run {
+            println("❌ [VIEWMODEL] sharedPreferences es null en loadSavedId")
         }
     }
     
@@ -736,35 +722,35 @@ class DeliveryViewModel : ViewModel() {
     
     private fun observeAssignedOrders() {
         viewModelScope.launch {
+            val previousOrderIds = mutableSetOf<String>()
+            
             _deliveryId.collect { deliveryId ->
                 if (!deliveryId.isNullOrEmpty()) {
-                    val previousOrders = mutableListOf<Order>()
                     orderRepository.observeAssignedOrders(deliveryId).collect { newOrders ->
                         // Filtrar pedidos activos (no completados)
                         val activeOrders = newOrders.filter { order ->
                             order.status != "DELIVERED"
                         }
                         
-                        // Detectar nuevos pedidos asignados
-                        val newAssignedOrders = activeOrders.filter { order ->
-                            (order.status in listOf("ASSIGNED", "MANUAL_ASSIGNED", "ACCEPTED") || order.orderType == "MANUAL" || order.orderType == "RESTAURANT") &&
-                            order.assignedToDeliveryId == deliveryId &&
-                            previousOrders.none { it.id == order.id }
+                        // Detectar pedidos nuevos
+                        val currentOrderIds = activeOrders.map { it.id }.toSet()
+                        val newOrderIds = currentOrderIds - previousOrderIds
+                        
+                        if (newOrderIds.isNotEmpty() && previousOrderIds.isNotEmpty()) {
+                            // ¡Hay pedidos nuevos! Reproducir sonido si hay contexto
+                            println("🔔 [DEBUG] ${newOrderIds.size} nuevo(s) pedido(s) detectado(s)")
+                            applicationContext?.let { context ->
+                                SoundNotificationService.playNewOrderSound(context)
+                                showNotificationForNewOrder(context, newOrderIds.size)
+                            }
                         }
+                        
+                        // Actualizar la lista anterior para la próxima comparación
+                        previousOrderIds.clear()
+                        previousOrderIds.addAll(currentOrderIds)
                         
                         // Actualizar la lista de pedidos activos
                         _orders.value = activeOrders.sortedByDescending { it.createdAt }
-                        
-                        // Actualizar la lista anterior para la próxima comparación
-                        previousOrders.clear()
-                        previousOrders.addAll(activeOrders)
-                        
-                        // Emitir notificación para nuevos pedidos asignados
-                        if (newAssignedOrders.isNotEmpty()) {
-                            // Para usar notificaciones reales, necesitamos el contexto de la aplicación
-                            // Este se puede pasar desde la Activity cuando se inicializa el ViewModel
-                            // triggerNotification("¡Nuevo pedido asignado!", "Tienes ${newAssignedOrders.size} nuevo(s) pedido(s) asignado(s)")
-                        }
                     }
                 }
             }
@@ -773,54 +759,35 @@ class DeliveryViewModel : ViewModel() {
     
     fun observeAssignedOrdersWithContext(context: Context) {
         viewModelScope.launch {
+            val previousOrderIds = mutableSetOf<String>()
+            
             _deliveryId.collect { deliveryId ->
                 if (!deliveryId.isNullOrEmpty()) {
-                    val previousOrders = mutableListOf<Order>()
                     orderRepository.observeAssignedOrders(deliveryId).collect { newOrders ->
                         // Filtrar pedidos activos (no completados)
                         val activeOrders = newOrders.filter { order ->
                             order.status != "DELIVERED"
                         }
                         
-                        // Detectar nuevos pedidos asignados
-                        val newAssignedOrders = activeOrders.filter { order ->
-                            (order.status in listOf("ASSIGNED", "MANUAL_ASSIGNED", "ACCEPTED") || order.orderType == "MANUAL" || order.orderType == "RESTAURANT") &&
-                            order.assignedToDeliveryId == deliveryId &&
-                            previousOrders.none { it.id == order.id }
-                        }
+                        // Detectar pedidos nuevos
+                        val currentOrderIds = activeOrders.map { it.id }.toSet()
+                        val newOrderIds = currentOrderIds - previousOrderIds
                         
-                        // Actualizar la lista de pedidos activos
-                        // IMPORTANTE: No filtramos por estado de conexión aquí, ya que el repositorio
-                        // ya se encarga de devolver solo los pedidos relevantes para este repartidor
-                        _orders.value = activeOrders.sortedByDescending { it.createdAt }
+                        if (newOrderIds.isNotEmpty() && previousOrderIds.isNotEmpty()) {
+                            // ¡Hay pedidos nuevos! Reproducir sonido
+                            println("🔔 [DEBUG] ${newOrderIds.size} nuevo(s) pedido(s) detectado(s)")
+                            SoundNotificationService.playNewOrderSound(context)
+                            
+                            // Mostrar notificación
+                            showNotificationForNewOrder(context, newOrderIds.size)
+                        }
                         
                         // Actualizar la lista anterior para la próxima comparación
-                        previousOrders.clear()
-                        previousOrders.addAll(activeOrders)
+                        previousOrderIds.clear()
+                        previousOrderIds.addAll(currentOrderIds)
                         
-                        // Emitir notificación para nuevos pedidos asignados
-                        if (newAssignedOrders.isNotEmpty()) {
-                            println("🔔 ¡PEDIDO NUEVO DETECTADO! Repartidor: $deliveryId")
-                            newAssignedOrders.forEach { order ->
-                                println("   📦 Pedido ID: ${order.id}, Status: ${order.status}, OrderType: ${order.orderType}")
-                                println("   Cliente: ${order.customer.name}")
-                                println("   Restaurante: ${order.restaurantName}")
-                            }
-                            println("   Total pedidos nuevos: ${newAssignedOrders.size}")
-                            
-                            // Reproducir sonido de notificación usando el contexto guardado
-                            applicationContext?.let { ctx ->
-                                SoundNotificationService.playNewOrderSound(ctx)
-                                println("🔊 Reproduciendo sonido de notificación...")
-                            } ?: run {
-                                // Fallback: usar el contexto pasado como parámetro
-                                SoundNotificationService.playNewOrderSound(context)
-                                println("⚠️ Usando contexto de parámetro (applicationContext es null)")
-                            }
-                            
-                            // Mostrar notificación visual
-                            triggerNotificationWithContext(context, "¡Nuevo pedido asignado!", "Tienes ${newAssignedOrders.size} nuevo(s) pedido(s) asignado(s)")
-                        }
+                        // Actualizar la lista de pedidos activos
+                        _orders.value = activeOrders.sortedByDescending { it.createdAt }
                     }
                 }
             }
@@ -834,9 +801,16 @@ class DeliveryViewModel : ViewModel() {
                 if (!deliveryId.isNullOrEmpty()) {
                     val previousOrders = mutableListOf<Order>()
                     orderRepository.observeAssignedOrders(deliveryId).collect { allOrders ->
+                        println("📦 [COMPLETED] Total pedidos recibidos: ${allOrders.size}")
+                        
                         // Filtrar solo pedidos completados
                         val completedOrders = allOrders.filter { order ->
                             order.status == "DELIVERED" && order.assignedToDeliveryId == deliveryId
+                        }
+                        
+                        println("📦 [COMPLETED] Pedidos DELIVERED: ${completedOrders.size}")
+                        completedOrders.forEachIndexed { index, order ->
+                            println("   📋 Pedido #$index: ${order.id}, status: ${order.status}, createdAt: ${order.createdAt}")
                         }
                         
                         // Calcular las ganancias diarias solo para hoy
@@ -857,6 +831,7 @@ class DeliveryViewModel : ViewModel() {
                         
                         // Actualizar la lista de pedidos completados
                         _completedOrders.value = completedOrders.sortedByDescending { it.createdAt }
+                        println("📦 [COMPLETED] Lista actualizada con ${_completedOrders.value.size} pedidos")
                         
                         // Actualizar la lista anterior para la próxima comparación
                         previousOrders.clear()
@@ -1055,58 +1030,38 @@ class DeliveryViewModel : ViewModel() {
         }
     }
     
-    /**
-     * Detecta si llegó un pedido nuevo y reproduce sonido (COPIA EXACTA DE ADMIN)
-     */
-    private fun detectNewOrder(allOrders: List<Order>, activeOrders: List<Order>) {
-        val currentActiveOrderCount = activeOrders.size
-        
-        // Verificar si aumentó el número de pedidos activos
-        if (currentActiveOrderCount > lastActiveOrderCount && lastActiveOrderCount != 0 && applicationContext != null) {
-            // Buscar el pedido activo más reciente
-            val newestActiveOrder = activeOrders.maxByOrNull { it.id }
-            
-            if (newestActiveOrder != null) {
-                println("🔔 ¡PEDIDO NUEVO DETECTADO! ID: ${newestActiveOrder.id}, Status: ${newestActiveOrder.status}")
-                println("   Cliente: ${newestActiveOrder.customer.name}")
-                println("   Restaurante: ${newestActiveOrder.restaurantName}")
-                println("   Total pedidos activos: $currentActiveOrderCount")
-                
-                // Reproducir sonido de notificación
-                applicationContext?.let { ctx ->
-                    SoundNotificationService.playNewOrderSound(ctx)
-                    println("🔊 Reproduciendo sonido de notificación...")
-                }
-            }
-        } else if (lastActiveOrderCount == 0 && currentActiveOrderCount > 0) {
-            // Primer pedido después de estar vacío
-            val newestActiveOrder = activeOrders.maxByOrNull { it.id }
-            if (newestActiveOrder != null && applicationContext != null) {
-                println("🔔 PRIMER PEDIDO DETECTADO! ID: ${newestActiveOrder.id}")
-                SoundNotificationService.playNewOrderSound(applicationContext!!)
-            }
-        }
-        
-        // Actualizar contadores
-        lastActiveOrderCount = currentActiveOrderCount
-    }
-    
-    // Observador GLOBAL de pedidos (igual que admin observeOrders)
+    // Observador GLOBAL de pedidos (IGUAL QUE REPARTIDOR-WEB)
+    // Muestra: pedidos disponibles + pedidos asignados a este repartidor
     private fun observeAssignedOrdersGlobal() {
         viewModelScope.launch {
+            println("🔔 [VIEWMODEL] ========== INICIO observeAssignedOrdersGlobal ==========")
             _deliveryId.collect { deliveryId ->
+                println("🔔 [VIEWMODEL] deliveryId.collect received: '$deliveryId'")
                 if (!deliveryId.isNullOrEmpty()) {
-                    orderRepository.observeAssignedOrders(deliveryId).collect { newOrders ->
-                        println("🔄 [REPOSITORIO] Pedidos recibidos del repositorio: ${newOrders.size}")
-                        newOrders.forEach { order ->
-                            println("   ├── ID: ${order.id}")
-                            println("   ├── Status: ${order.status}")
-                            println("   └── AssignedTo: ${order.assignedToDeliveryId}")
+                    println("🔔 [VIEWMODEL] Observando pedidos para repartidor: $deliveryId")
+                    orderRepository.observeAssignedOrders(deliveryId).collect { allOrders ->
+                        println("📦 [VIEWMODEL] Recibidos ${allOrders.size} pedidos desde repositorio")
+                        allOrders.forEachIndexed { index, order ->
+                            println("   📋 Pedido #$index: ID=${order.id}, Status=${order.status}, AssignedTo=${order.assignedToDeliveryId}")
                         }
-                        _orders.value = newOrders.sortedByDescending { it.createdAt }
+                        
+                        // Filtrar pedidos activos (excluir DELIVERED y CANCELLED)
+                        val activeOrders = allOrders.filter { order ->
+                            order.status != "DELIVERED" && order.status != "CANCELLED"
+                        }
+                        
+                        println("📦 [VIEWMODEL] Pedidos activos después de filtrar: ${activeOrders.size}")
+                        
+                        // El repositorio ya filtra correctamente:
+                        // 1. Pedidos disponibles (sin repartidor asignado)
+                        // 2. Pedidos asignados a ESTE repartidor
+                        
+                        // Actualizar la lista de pedidos visibles
+                        _orders.value = activeOrders.sortedByDescending { it.createdAt }
+                        println("✅ [VIEWMODEL] Lista de pedidos actualizada: ${_orders.value.size} pedidos")
                     }
                 } else {
-                    println("⏳ [ESPERA] Esperando ID de repartidor...")
+                    println("⏳ [VIEWMODEL] Esperando deliveryId... (es null o vacío)")
                 }
             }
         }

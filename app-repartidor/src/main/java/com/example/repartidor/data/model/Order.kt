@@ -18,6 +18,7 @@ data class Order(
     val total: Double = 0.0,
     val customerLocation: Location = Location(),
     val pickupLocationUrl: String = "",
+    val pickupAddress: String = "",  // Dirección de origen para motocicleta
     val deliveryAddress: String = "",
     val customerUrl: String = "",
     val deliveryReferences: String = "",
@@ -30,7 +31,9 @@ data class Order(
     val deliveredAt: Long? = null,  // Momento en que se entregó el pedido
     val orderType: String? = null,  // Tipo de pedido: "MANUAL" o "RESTAURANT"
     val serviceType: String? = null,  // Tipo de servicio: "MOTORCYCLE_TAXI", "GASOLINE", etc.
-    val distance: String? = null  // Distancia calculada (para motocicleta)
+    val distance: String? = null,  // Distancia calculada (para motocicleta)
+    val itemsOriginalString: String? = null,  // String original de items para motocicleta
+    val additionalNotes: String? = null  // Notas adicionales del cliente
 ) {
     constructor() : this(
         id = "",
@@ -45,6 +48,7 @@ data class Order(
         total = 0.0,
         customerLocation = Location(),
         pickupLocationUrl = "",
+        pickupAddress = "",
         deliveryAddress = "",
         customerUrl = "",
         deliveryReferences = "",
@@ -57,7 +61,9 @@ data class Order(
         deliveredAt = null,
         orderType = null,
         serviceType = null,
-        distance = null
+        distance = null,
+        itemsOriginalString = null,
+        additionalNotes = null
     )
     
     companion object {
@@ -75,10 +81,16 @@ data class Order(
                 val total = snapshot.child("total").getValue(Double::class.java) ?: 0.0
                 val customerLocation = snapshot.child("customerLocation").getValue(Location::class.java) ?: Location()
                 val pickupLocationUrl = snapshot.child("pickupLocationUrl").getValue(String::class.java) ?: ""
+                val pickupAddress = snapshot.child("pickupAddress").getValue(String::class.java) ?: ""
                 val deliveryAddress = snapshot.child("deliveryAddress").getValue(String::class.java) ?: ""
                 val customerUrl = snapshot.child("customerUrl").getValue(String::class.java) ?: ""
                 val deliveryReferences = snapshot.child("deliveryReferences").getValue(String::class.java) ?: ""
-                val customerCode = snapshot.child("customerCode").getValue(String::class.java) ?: ""
+                val customerCodeRaw = snapshot.child("customerCode").value
+                val customerCode = when (customerCodeRaw) {
+                    is String -> customerCodeRaw
+                    is Number -> customerCodeRaw.toString()
+                    else -> ""
+                }
                 val status = snapshot.child("status").getValue(String::class.java) ?: "PENDING"
                 val assignedToDeliveryId = snapshot.child("assignedToDeliveryId").getValue(String::class.java) ?: ""
                 val assignedToDeliveryName = snapshot.child("assignedToDeliveryName").getValue(String::class.java) ?: ""
@@ -87,11 +99,27 @@ data class Order(
                 val deliveredAt = snapshot.child("deliveredAt").getValue(Long::class.java)
                 val orderType = snapshot.child("orderType").getValue(String::class.java)
                 val serviceType = snapshot.child("serviceType").getValue(String::class.java)
-                val distance = snapshot.child("distance").getValue(String::class.java)
+                
+                // Manejar distance - puede ser String o Double en Firebase
+                val distanceRaw = snapshot.child("distance").value
+                val distance = when (distanceRaw) {
+                    is String -> distanceRaw
+                    is Number -> distanceRaw.toString()
+                    else -> null
+                }
+                
+                val itemsOriginalString = snapshot.child("itemsOriginalString").getValue(String::class.java)
+                val additionalNotes = snapshot.child("additionalNotes").getValue(String::class.java)
+                    ?: snapshot.child("additionalDescription").getValue(String::class.java)
+                    ?: snapshot.child("notes").getValue(String::class.java)
+                
+                println("📝 [REPARTIDOR] additionalNotes desde Firebase: '$additionalNotes'")
                 
                 // Parsear items - puede venir como String o Array
                 val itemsRaw = snapshot.child("items").value
                 val items = parseItems(itemsRaw)
+                
+                println("✅ [REPARTIDOR] Pedido parseado: ID=$id, Status=$status, ServiceType=$serviceType, Items=${items.size}, Distance=$distance")
                 
                 Order(
                     id = id,
@@ -106,6 +134,7 @@ data class Order(
                     total = total,
                     customerLocation = customerLocation,
                     pickupLocationUrl = pickupLocationUrl,
+                    pickupAddress = pickupAddress,
                     deliveryAddress = deliveryAddress,
                     customerUrl = customerUrl,
                     deliveryReferences = deliveryReferences,
@@ -118,9 +147,13 @@ data class Order(
                     deliveredAt = deliveredAt,
                     orderType = orderType,
                     serviceType = serviceType,
-                    distance = distance
+                    distance = distance,
+                    itemsOriginalString = itemsOriginalString,
+                    additionalNotes = additionalNotes
                 )
             } catch (e: Exception) {
+                println("❌ [REPARTIDOR] Error al parsear pedido: ${e.message}")
+                e.printStackTrace()
                 null
             }
         }
@@ -131,6 +164,25 @@ data class Order(
                 is String -> {
                     // Si es un string (pedido de motocicleta), convertir a OrderItem
                     listOf(OrderItem(name = itemsRaw, quantity = 1, unitPrice = 0.0, subtotal = 0.0))
+                }
+                is Map<*, *> -> {
+                    // Manejar objeto items con itemsOriginalString (pedido de motocicleta)
+                    val itemsOriginalString = itemsRaw["itemsOriginalString"] as? String
+                    if (itemsOriginalString != null) {
+                        listOf(OrderItem(name = itemsOriginalString, quantity = 1, unitPrice = 0.0, subtotal = 0.0))
+                    } else {
+                        // Intentar parsear como un solo item del mapa
+                        try {
+                            listOf(OrderItem(
+                                name = itemsRaw["name"] as? String ?: itemsRaw.toString(),
+                                quantity = (itemsRaw["quantity"] as? Number)?.toInt() ?: 1,
+                                unitPrice = (itemsRaw["unitPrice"] as? Number)?.toDouble() ?: 0.0,
+                                subtotal = (itemsRaw["subtotal"] as? Number)?.toDouble() ?: 0.0
+                            ))
+                        } catch (e: Exception) {
+                            listOf(OrderItem(name = itemsRaw.toString(), quantity = 1, unitPrice = 0.0, subtotal = 0.0))
+                        }
+                    }
                 }
                 is List<*> -> {
                     // Si es una lista, intentar convertir cada elemento
@@ -153,7 +205,14 @@ data class Order(
                         }
                     }
                 }
-                else -> emptyList()
+                else -> {
+                    // Si viene en otro formato, convertir a string para no perder la información
+                    if (itemsRaw != null) {
+                        listOf(OrderItem(name = itemsRaw.toString(), quantity = 1, unitPrice = 0.0, subtotal = 0.0))
+                    } else {
+                        emptyList()
+                    }
+                }
             }
         }
     }

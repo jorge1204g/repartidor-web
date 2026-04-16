@@ -289,20 +289,31 @@ class OrderRepository {
     fun observeOrders(): Flow<List<Order>> = callbackFlow {
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                println("📊 [ADMIN] onDataChange llamado, ${snapshot.childrenCount} pedidos en Firebase")
                 val orders = snapshot.children.mapNotNull { 
-                    Order.fromSnapshot(it)
+                    val order = Order.fromSnapshot(it)
+                    if (order != null) {
+                        println("✅ [ADMIN] Pedido parseado: ID=${order.id}, Status=${order.status}, Cliente=${order.customer.name}")
+                    } else {
+                        println("⚠️ [ADMIN] Pedido NO se pudo parsear: ${it.key}")
+                    }
+                    order
                 }
+                println("✅ [ADMIN] Total pedidos parseados: ${orders.size}")
                 trySend(orders)
             }
             
             override fun onCancelled(error: DatabaseError) {
+                println("❌ [ADMIN] Error observando pedidos: ${error.message}")
                 close(error.toException())
             }
         }
         
+        println("🔍 [ADMIN] Iniciando observación de pedidos en: ${ordersRef}")
         ordersRef.addValueEventListener(listener)
         
         awaitClose {
+            println("🔚 [ADMIN] Deteniendo observación de pedidos")
             ordersRef.removeEventListener(listener)
         }
     }

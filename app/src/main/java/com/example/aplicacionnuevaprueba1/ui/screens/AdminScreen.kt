@@ -3,6 +3,7 @@ package com.example.aplicacionnuevaprueba1.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -313,6 +314,34 @@ fun OrderCard(
             if (order.items.isNotEmpty()) {
                 Text(text = "Producto: ${order.items[0].name}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
             }
+            
+            // Notas del cliente (si existen) - Mostrar en la tarjeta principal
+            if (!order.additionalNotes.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFF9800).copy(alpha = 0.15f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF9800).copy(alpha = 0.4f)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Text(
+                            text = "💬 Notas del Cliente:",
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFF9800),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = order.additionalNotes,
+                            color = Color(0xFFFF9800),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
             if (order.deliveryAddress.isNotEmpty()) {
                 Text(text = "Dir. Entrega: ${order.deliveryAddress}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
             }
@@ -565,7 +594,7 @@ fun OrderDetailsModal(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 400.dp),
+                    .heightIn(max = 600.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
@@ -732,6 +761,34 @@ fun OrderDetailsModal(
                     }
                     
                     Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Notas del cliente (si existen)
+                    if (!order.additionalNotes.isNullOrBlank()) {
+                        println("📱 [ADMIN UI] Mostrando notas del cliente: '${order.additionalNotes}'")
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFF9800).copy(alpha = 0.1f)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF9800).copy(alpha = 0.3f))
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Text(
+                                    text = "💬 Notas del Cliente:",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color(0xFFFF9800)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = order.additionalNotes,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                     
                     // Información de ubicación
                     Card(
@@ -2301,6 +2358,10 @@ fun RestaurantsManagementScreen(
     var notes by remember { mutableStateOf("") }
     var mapUrl by remember { mutableStateOf("") } // URL de Google Maps
     
+    // Separar restaurantes pendientes y aprobados
+    val pendingRestaurants = restaurants.filter { !it.isApproved }
+    val approvedRestaurants = restaurants.filter { it.isApproved }
+    
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -2319,11 +2380,38 @@ fun RestaurantsManagementScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = "⚠️ Las cuentas creadas aquí se activan automáticamente",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.tertiary
-            )
+        }
+        
+        // Pending approvals section
+        if (pendingRestaurants.isNotEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "⏳ Pendientes de Aprobación (${pendingRestaurants.size})",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Text(
+                            text = "Estos restaurantes solicitaron acceso y esperan tu aprobación",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+            
+            items(items = pendingRestaurants, key = { it.id }) { restaurant ->
+                PendingRestaurantCard(restaurant, viewModel)
+            }
         }
         
         // Create new restaurant section
@@ -2413,14 +2501,14 @@ fun RestaurantsManagementScreen(
         // List of existing restaurants
         item {
             Text(
-                text = "Restaurantes Existentes (${restaurants.size})",
+                text = "Restaurantes Aprobados (${approvedRestaurants.size})",
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
             )
             Divider()
         }
         
-        if (restaurants.isEmpty()) {
+        if (approvedRestaurants.isEmpty()) {
             item {
                 Box(
                     modifier = Modifier
@@ -2429,14 +2517,14 @@ fun RestaurantsManagementScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No hay restaurantes registrados",
+                        text = "No hay restaurantes aprobados",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
         } else {
-            items(items = restaurants, key = { it.id }) { restaurant ->
+            items(items = approvedRestaurants, key = { it.id }) { restaurant ->
                 RestaurantCard(restaurant, viewModel)
             }
         }
@@ -2561,6 +2649,91 @@ fun RestaurantCard(
                 LaunchedEffect(Unit) {
                     kotlinx.coroutines.delay(2000)
                     showCopiedMessage = false
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PendingRestaurantCard(
+    restaurant: Restaurant,
+    viewModel: AdminViewModel
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "🍽️ ${restaurant.name}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Badge(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                ) {
+                    Text("⏳ Pendiente")
+                }
+            }
+            
+            // Info
+            Text(text = "📞 ${restaurant.phone}")
+            Text(text = "📍 ${restaurant.address}")
+            
+            if (restaurant.email.isNotEmpty()) {
+                Text(text = "✉️ ${restaurant.email}")
+            }
+            
+            if (restaurant.notes.isNotEmpty()) {
+                Text(
+                    text = "📝 ${restaurant.notes}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            
+            Text(
+                text = "📅 Registrado: ${restaurant.registrationDate}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            // Action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { viewModel.approveRestaurant(restaurant.id) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("✅ Aprobar")
+                }
+                
+                OutlinedButton(
+                    onClick = { viewModel.deleteRestaurant(restaurant.id, restaurant.name) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("❌ Rechazar")
                 }
             }
         }

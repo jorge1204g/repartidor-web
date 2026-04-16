@@ -614,7 +614,7 @@ fun OrderItem(
             }
             
             // Mensaje cuando el pedido está asignado manualmente pero no aceptado [#4.4]
-            if (order.status == "MANUAL_ASSIGNED" && order.assignedToDeliveryId.isEmpty()) {
+            if (order.status in listOf("MANUAL_ASSIGNED", "ASSIGNED", "PENDING") && order.assignedToDeliveryId.isEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFFFC107).copy(alpha = 0.1f)),
@@ -641,7 +641,7 @@ fun OrderItem(
             
             // Mostrar botón según el estado actual del pedido
             when (order.status) {
-                "MANUAL_ASSIGNED" -> {
+                "MANUAL_ASSIGNED", "ASSIGNED", "PENDING" -> {
                     if (order.assignedToDeliveryId.isEmpty() && !hasActiveOrder) {
                         // Botón para aceptar pedido manualmente asignado [#3.1]
                         Spacer(modifier = Modifier.height(8.dp))
