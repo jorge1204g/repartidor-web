@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ref, set, push } from 'firebase/database';
-import { database } from '../services/firebase';
+import { database } from '../services/Firebase';
 
 interface Location {
   latitude: number;

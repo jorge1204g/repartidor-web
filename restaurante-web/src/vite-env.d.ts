@@ -14,3 +14,12 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+// Google Maps types
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
+export {};
